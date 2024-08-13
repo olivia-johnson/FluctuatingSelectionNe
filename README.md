@@ -1,5 +1,5 @@
 # The effect of fluctuating selection on effective population size (N<sub>e</sub>)
-This repository contains the code to replicate the analysis conducted in Johnson et al. 
+This repository contains the code to replicate the analysis conducted in the abovenamed manuscript. 
 
 ## Directions
 
