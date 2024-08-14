@@ -20,11 +20,11 @@ Parameters for allele frequency simulations are recorded in a text file labelled
 Once the parameter sets have been define, the simulation can be run using the following code,
 
 ```ruby
-python chp4_allele.py ${group_x} ${rep} ${results_dir}
+python runAllele.py ${group_x} ${rep} ${results_dir}
 ```
 group_x is the parameter set label, rep is the replicate number and results_dir is the path where you want output to be written to.
 
-This will run [chp4_allele.py](chp4_allele.py), which will read in and parse parameters to the [SLiM simulation](witt_complex_allele.slim).   
+This will run [runAllele.py](runAllele.py), which will read in and parse parameters to the [SLiM simulation](wittmann_allele.slim).   
 
 Each simulation will produce a file named al_freq_group_x_rep.txt
 
@@ -36,11 +36,11 @@ Each simulation will produce a file named al_freq_group_x_rep.txt
 To run simulations use the following code, 
 
 ```ruby
-slim -d results_dir=${results_dir} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} timeseries_Ne_short.slim
+slim -d results_dir=${results_dir} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} gw_sim.slim
 ```
 results_dir is the path where you want output to be written to, fitness is either 0 (to turn off fitness function) or 1 (to engage fluctuating fitness model), loci is the number of initial seasonal loci you want drawn onto the genome, epistasis is the parameter _y_, and rep is the replicate number.
 
 > [!IMPORTANT]
-> You must first run constant timeseries genome-wide simulations with fitness = 1 to determine the seasonal dominance and effect size of each locus. These values are used across simulation types (i.e. [capping](offcap_timeseries.slim) and [seasonal](seasonal_ne.slim)) but are only generated in [timeseries_Ne_short.slim](timeseries_Ne_short.slim) simulations with fitness acting.
+> You must first run constant a population size genome-wide simulation with fitness = 1 to determine the seasonal dominance and effect size of each locus. These values are used across simulation types (i.e. [capping](capping.slim) and [seasonal](seasonal_ne.slim)) but are only generated in [gw_sim.slim](gw_sim.slim) simulations with fitness acting.
 >
-> Each replicate will have a different set of seasonal mutations that will be used across simulation types (i.e. seasonal mutations are constant for replicate 1 across the different simulations).
+> Each replicate of each parameter set (loci number and _y_ value) will have a different set of seasonal mutations that will be used across simulation types (i.e. seasonal mutations are constant for replicate 1 across the different simulations).
