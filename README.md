@@ -26,7 +26,7 @@ group_x is the parameter set label, rep is the replicate number and results_dir 
 
 This will run [runAllele.py](runAllele.py), which will read in and parse parameters to the [SLiM simulation](wittmann_allele.slim). 
 
-**You may need to change the path in [runAllele.py](runAllele.py)**
+**You may need to change the path at the start of [runAllele.py](runAllele.py)**
 
 Each simulation will produce a file named al_freq_group_x_rep.txt
 
