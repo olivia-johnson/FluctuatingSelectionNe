@@ -1,0 +1,180 @@
+
+initialize() {
+	if (!exists("tmpdir"))
+	{defineConstant("tmpdir", "~/FluctuatingSelectionNe/");} // call in tmpdir
+	
+	if (!exists("GenomeSize"))
+	{defineConstant("GenomeSize", 100); } // genome size
+	
+	if (!exists("L"))
+	{defineConstant("L", 100); }// no. selected seasonal loci
+	
+	if (!exists("y"))
+	{defineConstant("y", 0.5); }// exponent of fitness function (epistasis parameter)
+	
+	if (!exists("n_s"))
+	{defineConstant("n_s", 5e5); }// summer population size
+	
+	if (!exists("n_w"))
+	{defineConstant("n_w", 5e5); }// winter population size
+	
+	if (!exists("g_s"))
+	{defineConstant("g_s", 5); } // generations per summer
+	
+	if (!exists("g_w"))
+	{defineConstant("g_w", 5); } // generations per winter 
+	
+	if (!exists("g"))
+	{defineConstant("g", (g_s + g_w)); } // generations per seasonal cycle     
+	
+	if (!exists("rGen"))
+	{defineConstant("rGen", 10000);} // remember individuals gen call
+	
+	if (!exists("group"))
+	{defineConstant("group", 1);} // group of parameters
+	
+	if (!exists("sim_run"))
+	{defineConstant("sim_run", 1);} // sim run
+	
+	if (!exists("fit"))
+	{defineConstant("fit",2);} //if fit = 0 fitness function switched off
+	initializeMutationRate(0); // no mutation
+	initializeRecombinationRate(0.5);  // all positions unlinked
+	initializeMutationType("m1", 0.0, "f", 0.0); // seasonal
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, GenomeSize-1);
+	m1.color = "pink";
+	m1.convertToSubstitution = F;
+	}
+
+
+1 early() {
+	sim.addSubpop("p0", n_s); // draw in population
+	} 
+
+1 late(){
+	
+	if (L > 0){
+		win = GenomeSize/L;
+		win_mid = win/2;
+		
+		// sample seasonal dominance and effect sizes
+		data = c(1, 0.9, 0.9, 1);
+		mu=c(0,0);
+		sigma=matrix(data, ncol=2);
+		s_dom= runif(L, 0, 1);
+		w_dom=runif(L, 0, 1);
+		effects=rmvnorm(L, mu, sigma);
+		
+		for (i in 1:L-1){
+			if (s_dom[i] + w_dom[i] <=1){ //check that combined seasonal dominance is greater than 1
+				do{ // if less than 1 resample
+					s= runif(1, 0, 1);
+					w=runif(1, 0, 1);}
+				while (s + w <=1);
+				if (s+w >1){
+					s_dom[i] =s;
+					w_dom[i] = w;
+				}}}
+		
+		defineGlobal("s_d", s_dom);
+		defineGlobal("w_d", w_dom);
+		defineGlobal("s_fx", exp(effects[,0]));
+		defineGlobal("w_fx", exp(effects[,1]));
+		
+		for (i in 1:L){
+			pos=i-1;
+			// draw in selected mutations at 50% frequency
+			target = sample(p0.genomes, asInteger(n_s));
+			target.addNewDrawnMutation(m1, asInteger(pos));
+		}
+		
+		defineGlobal("mutations", sim.mutations);
+		if (identical(mutations.position, 1:L-1)==F){ //check all mutations are at independent sites
+			sim.simulationFinished();
+			catn("ERROR: INCORRECT MUTATION ORDER");
+		}
+		
+		
+		if (sim.mutationFrequencies(p0)[1] != 0.5){ //check all mutations are at the correct starting frequency
+			sim.simulationFinished();
+			catn("ERROR: SELECTED MUTATIONS NOT AT 0.5 STARTING FREQUENCY");
+		}
+		// create file to track allele frequencies
+		line3 = "FREQUENCIES \nGen,mut_pos,mut_freq, s_d, w_d, s_fx, w_fx";
+		writeFile(paste(asString(tmpdir)+"/al_freq_group_"+ asString(group) + "_"+ asString(sim_run)+".txt"), line3, append = F);
+		for (i in 1:size(sim.mutations)-1){
+			tab_line = paste(c(sim.cycle,sim.mutations[i].position,sim.mutationFrequencies(p0)[i],s_d[i], w_d[i],s_fx[i], w_fx[i]), sep = ",");
+			writeFile(paste(asString(tmpdir)+"/al_freq_group_"+ asString(group) + "_"+ asString(sim_run)+".txt"), tab_line, append = T);
+		}
+	}
+}
+// fitness model as presented by Wittmann et al. 2017 https://doi.org/10.1073/pnas.1702994114
+s1 fitnessEffect() { //summer
+	if (fit == 0){
+		return 1.0;
+	} else{
+		genomes=individual.genomes.mutationCountsInGenomes(mutations=mutations);
+		ns = asInteger(genomes==2); //homozygosity summer
+		het = asInteger(genomes==1);  // heterozygosity
+		nw = asInteger(genomes==0);  //homozygosity winter
+		if (modValueSeason >= 0 & modValueSeason < g_s) { //summer
+			dom = het*s_d;
+			zs=sum((dom+ns)*s_fx);
+			return (1 + zs)^y; }
+		
+		else { // winter
+			dom = het*w_d;
+			zw=sum((dom+nw)*w_fx);
+			return (1 + zw)^y;}
+	}
+}
+
+1:18050 early(){
+	defineGlobal("gen", sim.cycle);
+	defineGlobal("modValueSeason",integerMod(gen, g)); // determine generation in season
+	defineGlobal("modValuerGen", integerMod(gen, rGen)); //determine if time to sample
+	defineGlobal("fixed", sum(sim.mutationFrequencies(p0)==1)); // count fixed minutations
+	
+	if (modValuerGen ==0){
+		catn(gen);}
+}
+
+1:18050 late(){
+	
+	if (modValueSeason >= 0 & modValueSeason < g_s) { //summer
+		if (modValueSeason == 0){
+			p0.setSubpopulationSize(n_s);} //set summer population size
+		if (exists("slimgui")) {cat("Summer\n");}
+	}
+	if (modValueSeason >= g_s) { //winter
+		if (modValueSeason == g_s){
+			p0.setSubpopulationSize(n_w);} //set winter population size
+		if (exists("slimgui")) {cat("Winter\n");}
+	}
+	if (modValuerGen >=0 & modValuerGen <=(3*(g_s + g_w)-1)) {// sample
+		if (exists("slimgui")) {catn("Gen:" + gen + " sampling");}
+		if (L > 0){
+			for (i in 1:size(sim.mutations)-1){ // record allele frequencies
+				tab_line = paste(c(gen,sim.mutations[i].position,sim.mutationFrequencies(p0)[i]), sep = ",");
+				writeFile(paste(asString(tmpdir)+"/al_freq_group_"+ asString(group) + "_"+ asString(sim_run)+".txt"), tab_line, append = T);
+			
+			}}}}
+
+
+
+18050 late() {
+	gen = sim.cycle;
+	if (L > 0){ // record final allele frequency
+		for (i in 1:size(sim.mutations)-1){
+			tab_line = paste(c(gen,sim.mutations[i].position,sim.mutationFrequencies(p0)[i]), sep = ",");
+			writeFile(paste(asString(tmpdir)+"/al_freq_group_"+ asString(group) + "_"+ asString(sim_run)+".txt"), tab_line, append = T);
+		}
+	}
+	e_mc = sim.countOfMutationsOfType(m1);
+	loss = L - e_mc;
+	mem = usage(peak=T);
+	line4 = paste("\nwinter_fixed:" + loss + "\nsummer_fixed:" + fixed +"\nMemory usage: "+ mem);
+	catn(line4);
+}
+

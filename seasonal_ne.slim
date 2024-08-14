@@ -1,0 +1,233 @@
+
+initialize() {
+	defineConstant("genomeSize", 96900003); // Genome size
+	
+	defineConstant("nChrom", 4); // number of chromosomes
+	
+	if (!exists("L"))
+	{defineConstant("L", 154); }// no. selected seasonal loci
+	
+	if (!exists("y"))
+	{defineConstant("y", 11.5); }// exponent of fitness function
+	
+	if (!exists("n_s"))
+	{defineConstant("n_s", 5e5); }// summer population size
+	
+	if (!exists("n_w"))
+	{defineConstant("n_w", 5e5); }// winter population size
+	
+	if (!exists("g_s"))
+	{defineConstant("g_s", 5); } // generations per summer
+	
+	if (!exists("g_w"))
+	{defineConstant("g_w", 5); } // generations per winter 
+	
+	defineConstant("g", g_s+g_w);
+	
+	defineConstant("neutral_dist", 100000); // distance between neutral sites	
+	
+	if (!exists("mut"))
+	{defineConstant("mut", 0.0);} // mutation rate
+	
+	if (!exists("fit"))
+	{defineConstant("fit",1);} //if fit = 0 fitness function switched off
+	
+	if (!exists("results_dir"))
+	{defineConstant("results_dir","~/FluctuatingSelectionNe/");}
+	
+	if (!exists("rep"))
+	{defineConstant("rep", 0);} // replicate number
+	
+	initializeMutationRate(mut);
+	
+	map = readCSV(paste0(results_dir,"slim_recmap.csv") , c("ends", "rates"), sep="\t");
+	ends = map.getValue("ends");
+	ends = c(ends[1:(size(ends)-1)], genomeSize);
+	rates = map.getValue("rates");
+	initializeRecombinationRate(rates, ends);
+	
+	initializeMutationType("m1", 0.5, "f", 0.0); // neutral on linked chromosomes
+	initializeMutationType("m3", 0.5, "f", 0.0); // neutral on unlinked chromosome
+	initializeMutationType("m2", 0.0, "f", 0.0); // summer
+	initializeGenomicElementType("g1", m1, 1.0);
+	initializeGenomicElement(g1, 0, genomeSize-1);
+	m2.color = "pink";
+	m1.color="yellow";
+	m3.color="red";
+	m2.convertToSubstitution = F;
+}
+
+1 early() {
+	sim.addSubpop("p0", n_s);
+	if (fit==0){
+		if (n_s==n_w){
+			defineGlobal("label", paste0("nofit_", rep));}else{
+			defineGlobal("label", paste0("FP_nofit_", rep));}}
+	else{
+		if (n_s==n_w){
+			defineConstant("label", paste0(L, "_", y,"_", rep));
+		} else{
+			defineConstant("label", paste0("FP_",L, "_", y,"_", rep));
+		}
+	}
+}
+1 late(){
+	if (L > 0 ){
+		if (fit>0){
+			
+			if (n_s==n_w){
+				seasonalinfo=paste0(results_dir,"/seasonal_mutations_",L, "_", y,"_", rep,".txt");
+			}else{seasonalinfo=paste0(results_dir,"/seasonal_mutations_FP_",L, "_", y,"_", rep,".txt");}
+			mutation_info=readCSV(seasonalinfo, sep="	");
+			sites=mutation_info.getValue("mut_pos");
+			defineGlobal("s_d", mutation_info.getValue("s_d"));
+			defineGlobal("w_d", mutation_info.getValue("w_d"));
+			defineGlobal("s_fx", mutation_info.getValue("s_fx"));
+			defineGlobal("w_fx", mutation_info.getValue("w_fx"));
+			
+			for (i in 1:L){
+				pos=sites[i-1];
+				
+				target = sample(p0.genomes, asInteger(n_s));
+				target.addNewDrawnMutation(m2, asInteger(pos));
+			}
+			defineGlobal("mutations", sim.mutationsOfType(m2));
+		}
+		unlinked_sites= (96900003-68900002)/neutral_dist; //neutral sites on the unlinked chromosome
+		for (j in 1:unlinked_sites){
+			pos=68900002+(j*neutral_dist);
+			
+			target = sample(p0.genomes, asInteger(n_s));
+			target.addNewDrawnMutation(m3, asInteger(pos));
+		}
+		neutral_sites= 68900002/neutral_dist; //neutral sites on first three chromosomes
+		for (k in 1:neutral_sites){
+			pos=k*neutral_dist;
+			
+			target = sample(p0.genomes, asInteger(n_s));
+			target.addNewDrawnMutation(m1, asInteger(pos));
+		}
+	
+	
+	}
+	writeFile(paste0(results_dir, "season_ne_", label, ".txt"), paste("Time", "af_var_linked","linked_F","linked_Ne","af_var_unlinked","unlinked_F", "unlinked_Ne", sep="\t"),append=F); //create Ne file
+	
+	line3 = "FREQUENCIES \nGen,mut_id,mut_freq"; //record initial frequency and effect size and dominance for each selected allele
+	writeFile(paste0(results_dir+"/season_al_freq_ne_", label,".txt"), line3, append = F);
+	if (fit >0){for (i in 1:size(mutations)-1){
+			tab_line = paste(c(sim.cycle,mutations[i].id,sim.mutationFrequencies(p0, mutations=mutations)[i]), sep = ",");
+			writeFile(paste0(results_dir+"/season_al_freq_ne_", label,".txt"), tab_line, append = T);
+		}}
+}
+
+s1 fitnessEffect() { //summer
+	if (fit == 0){
+		return 1.0;
+	} else{
+		genomes=individual.genomes.mutationCountsInGenomes(mutations=mutations);
+		ns = asInteger(genomes==2); //homozygosity summer
+		het = asInteger(genomes==1);  // heterozygosity
+		nw = asInteger(genomes==0);  //homozygosity winter
+		if (modValueSeason >= 0 & modValueSeason < g_s) { //summer
+			dom = het*s_d;
+			zs=sum((dom+ns)*s_fx);
+			return (1 + zs)^y; }
+		
+		else { // winter
+			dom = het*w_d;
+			zw=sum((dom+nw)*w_fx);
+			return (1 + zw)^y;}
+	}
+}
+
+early(){
+	defineGlobal("gen", sim.cycle);
+	defineGlobal("modValueSeason",integerMod(gen, g));
+	defineGlobal("modValueSample", integerMod(gen, 2500));
+	if (modValueSeason >= 0 & modValueSeason < g_s) { //summer
+		if (modValueSeason == 0){
+			p0.setSubpopulationSize(n_s);}
+		if (exists("slimgui")) {cat("Summer\n");}
+	}
+	if (modValueSeason >= g_s) { //winter
+		if (modValueSeason == g_s){
+			p0.setSubpopulationSize(n_w);}
+		if (exists("slimgui")) {cat("Winter\n");}
+	}
+}
+
+2500 late() { //calculate Ne 
+	
+	unlinked_sites= (96900003-68900002)/neutral_dist;
+	for (j in 1:unlinked_sites){
+		pos=68900002+(j*neutral_dist);
+		
+		target = sample(p0.genomes, asInteger(n_s));
+		target.addNewDrawnMutation(m3, asInteger(pos));
+	}
+	neutral_sites= 68900002/neutral_dist;
+	for (k in 1:neutral_sites){
+		pos=k*neutral_dist;
+		
+		target = sample(p0.genomes, asInteger(n_s));
+		target.addNewDrawnMutation(m1, asInteger(pos));
+	}
+	
+	defineGlobal("linked_muts",sim.mutationsOfType(m1));
+	defineGlobal("mut_freq", sim.mutationFrequencies(p0, mutations=linked_muts));
+	
+	al_change=mut_freq-0.50;
+	af_var=var(al_change);
+	F_linked=(al_change^2)/0.25;
+	mean_Flinked=mean(F_linked);
+	Ne=-g/(2*log(1-mean_Flinked));
+	
+	defineGlobal("unlinked_muts",sim.mutationsOfType(m3));
+	defineGlobal("unlinked_freq", sim.mutationFrequencies(p0, mutations=unlinked_muts));
+	
+	unlinked_change=unlinked_freq-0.50;
+	uaf_var=var(unlinked_change);
+	F_unlinked=(unlinked_change^2)/(0.25);
+	mean_Funlinked=mean(F_unlinked);
+	Ne_unlinked=-g/(2*log(1-mean_Funlinked));
+	
+	writeFile(paste0(results_dir, "season_ne_", label, ".txt"), paste(gen,af_var, mean_Flinked, Ne, uaf_var, mean_Funlinked,Ne_unlinked, sep="\t"),append=T);
+
+}
+
+
+2500:2510 late(){ //sample allele frequencies for alleles segregationg for final three seasonal cycles
+	if (modValueSample >=0 & modValueSample<11){
+		if (fit > 0){for (i in 1:size(mutations)-1){
+				tab_line = paste(c(sim.cycle,mutations[i].id,sim.mutationFrequencies(p0, mutations=mutations)[i]), sep = ",");
+				writeFile(paste0(results_dir+"/season_al_freq_"+ "ne_", label,".txt"), tab_line, append = T);
+			}}
+	
+	}
+	
+	
+	
+	if (modValueSample >0 &modValueSample<=10){ //calculate final Ne
+		
+		al_change=sim.mutationFrequencies(p0, mutations=linked_muts)-mut_freq;
+		af_var=var(al_change);
+		F_linked=(al_change^2)/0.25;
+		mean_Flinked=mean(F_linked);
+		Ne=-g/(2*log(1-mean_Flinked));
+		defineGlobal("mut_freq", sim.mutationFrequencies(p0, mutations=linked_muts));
+				
+		unlinked_change=sim.mutationFrequencies(p0, mutations=unlinked_muts)-unlinked_freq;
+		uaf_var=var(unlinked_change);
+		F_unlinked=(unlinked_change^2)/(0.25);
+		mean_Funlinked=mean(F_unlinked);
+		Ne_unlinked=-g/(2*log(1-mean_Funlinked));
+		defineGlobal("unlinked_freq", sim.mutationFrequencies(p0, mutations=unlinked_muts));
+		
+		writeFile(paste0(results_dir, "season_ne_", label, ".txt"), paste(gen,af_var, mean_Flinked, Ne, uaf_var, mean_Funlinked,Ne_unlinked, sep="\t"),append=T);}
+
+}
+
+2511 early(){
+	
+	sim.simulationFinished();
+}
