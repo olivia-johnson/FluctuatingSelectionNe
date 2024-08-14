@@ -104,7 +104,7 @@ initialize() {
 		line3 = "FREQUENCIES \nGen,mut_pos,mut_freq, s_d, w_d, s_fx, w_fx";
 		writeFile(paste(asString(tmpdir)+"/al_freq_group_"+ asString(group) + "_"+ asString(sim_run)+".txt"), line3, append = F);
 		for (i in 1:size(sim.mutations)-1){
-			// record mutation IDs and seasonal domiannce and effect size values to be used in subsetqent simulation types (only for fitness > 0)
+			// record mutation IDs and seasonal dominance and effect size values
 			tab_line = paste(c(sim.cycle,sim.mutations[i].position,sim.mutationFrequencies(p0)[i],s_d[i], w_d[i],s_fx[i], w_fx[i]), sep = ","); 
 			writeFile(paste(asString(tmpdir)+"/al_freq_group_"+ asString(group) + "_"+ asString(sim_run)+".txt"), tab_line, append = T);
 		}
