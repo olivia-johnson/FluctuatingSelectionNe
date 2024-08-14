@@ -15,6 +15,7 @@ conda activate ne_env
 ```
 
 ### Conducting simulations of fluctuating allele frequencies
+Parameters for allele frequency simulations are recorded in a text file labelled [group_x.txt](group_x.txt), where x is replaced by a unique numeric identifier for each parameter set. This file can be used as a template for the parameter file.
 
 ### Genome-wide simulations
 
