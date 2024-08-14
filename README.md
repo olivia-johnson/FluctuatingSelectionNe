@@ -17,14 +17,16 @@ conda activate ne_env
 ### Conducting simulations of fluctuating allele frequencies
 Parameters for allele frequency simulations are recorded in a text file labelled [group_x.txt](group_x.txt), where x is replaced by a unique numeric identifier for each parameter set. This file can be used as a template for the parameter file. The values we used for variables are included in the comments of this file in brackets, with constant values already included in the parameter file. Remove the text in quotation marks before running the simulations.
 
-Once the parameter sets have been define, the simulation can be run using the following code,
+Once the parameter sets have been defined, the simulation can be run using the following code,
 
 ```ruby
 python runAllele.py ${group_x} ${rep} ${results_dir}
 ```
 group_x is the parameter set label, rep is the replicate number and results_dir is the path where you want output to be written to.
 
-This will run [runAllele.py](runAllele.py), which will read in and parse parameters to the [SLiM simulation](wittmann_allele.slim).   
+This will run [runAllele.py](runAllele.py), which will read in and parse parameters to the [SLiM simulation](wittmann_allele.slim). 
+
+**You may need to change the path in [runAllele.py](runAllele.py)**
 
 Each simulation will produce a file named al_freq_group_x_rep.txt
 
