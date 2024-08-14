@@ -1,10 +1,10 @@
-fitness_on: 1 '0 if you do not want fintess model to run, 1 to run with fitness model active'
+fitness_on: 1 '0 if you do not want the fitness model to run, 1 to run with the fitness model active'
 group: x 'unique parameter set ID'
-l: 100 'number of fluctuating loci'
+l: 100 'number of fluctuating loci (100, 200, 500)'
 rGen: 9000 'number of generations between sampling points'
 s_pop: 500000.0 'summer population size (downscaled)'
 sum_gen: 5 'number of generations in summer season'
 w_pop: 500000.0 'winter population size (downscaled)'
 win_gen: 5 'number of generations in winter season'
-y: 1 'epistasis parameter'
+y: 1 'epistasis parameter (0.5, 1, 2, 4, 8, 12, 16, 20)'
 
