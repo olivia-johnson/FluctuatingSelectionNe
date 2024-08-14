@@ -22,7 +22,7 @@ initialize() {
 	if (!exists("g_w"))
 	{defineConstant("g_w", 5); } // generations per winter 
 	
-	defineConstant("g", g_s+g_w);
+	defineConstant("g", g_s+g_w); // generations in a seasonal cycle
 	
 	defineConstant("neutral_dist", 100000); // distance between neutral sites	
 	
@@ -38,9 +38,9 @@ initialize() {
 	if (!exists("rep"))
 	{defineConstant("rep", 0);} // replicate number
 	
-	initializeMutationRate(mut);
+	initializeMutationRate(mut); // set mutation rate
 	
-	map = readCSV(paste0(results_dir,"slim_recmap.csv") , c("ends", "rates"), sep="\t");
+	map = readCSV(paste0(results_dir,"slim_recmap.csv") , c("ends", "rates"), sep="\t"); // read in Drosophila recombination map (Comeron et al 2012)
 	ends = map.getValue("ends");
 	ends = c(ends[1:(size(ends)-1)], genomeSize);
 	rates = map.getValue("rates");
@@ -74,7 +74,7 @@ initialize() {
 1 late(){
 	if (L > 0 ){
 		if (fit>0){
-			
+			 // call in seasonal mutation information to ensure mutations are the same between selection types
 			if (n_s==n_w){
 				seasonalinfo=paste0(results_dir,"/seasonal_mutations_",L, "_", y,"_", rep,".txt");
 			}else{seasonalinfo=paste0(results_dir,"/seasonal_mutations_FP_",L, "_", y,"_", rep,".txt");}

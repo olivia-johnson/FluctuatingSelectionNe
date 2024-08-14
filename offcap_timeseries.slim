@@ -45,7 +45,7 @@ initialize() {
 	
 	initializeMutationRate(mut);
 	
-	map = readCSV(paste0(results_dir,"slim_recmap.csv") , c("ends", "rates"), sep="\t");
+	map = readCSV(paste0(results_dir,"slim_recmap.csv") , c("ends", "rates"), sep="\t"); // read in Drosophila recombination map (Comeron et al 2012)
 	ends = map.getValue("ends");
 	ends = c(ends[1:(size(ends)-1)], genomeSize);
 	rates = map.getValue("rates");
@@ -87,7 +87,8 @@ modifyChild()
 	}
 }
 1 late(){
-	if (L > 0){
+	if (L > 0){ 			 // call in seasonal mutation information to ensure mutations are the same between selection types
+
 		if (n_s==n_w){
 			seasonalinfo=paste0(results_dir,"/seasonal_mutations_",L, "_", y,"_", rep,".txt");
 		}else{seasonalinfo=paste0(results_dir,"/seasonal_mutations_FP_",L, "_", y,"_", rep,".txt");}

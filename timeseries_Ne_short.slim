@@ -22,12 +22,9 @@ initialize() {
 	if (!exists("g_w"))
 	{defineConstant("g_w", 5); } // generations per winter 
 	
-	defineConstant("g", g_s+g_w);
+	defineConstant("g", g_s+g_w); //generations in a full seasonal cylce
 	
 	defineConstant("neutral_dist", 100000); // distance between neutral sites	
-	
-	if (!exists("mut"))
-	{defineConstant("mut", 0.0);} // mutation rate
 	
 	if (!exists("fit"))
 	{defineConstant("fit",1);} //if fit = 0 fitness function switched off
@@ -38,9 +35,9 @@ initialize() {
 	if (!exists("rep"))
 	{defineConstant("rep", 0);} // replicate number
 	
-	initializeMutationRate(mut);
+	initializeMutationRate(0); // no mutation
 	
-	map = readCSV(paste0(results_dir,"slim_recmap.csv") , c("ends", "rates"), sep="\t");
+	map = readCSV(paste0(results_dir,"slim_recmap.csv") , c("ends", "rates"), sep="\t"); // read in Drosophila recombination map (Comeron et al 2012)
 	ends = map.getValue("ends");
 	ends = c(ends[1:(size(ends)-1)], genomeSize);
 	rates = map.getValue("rates");
@@ -48,7 +45,7 @@ initialize() {
 	
 	initializeMutationType("m1", 0.5, "f", 0.0); // neutral on linked chromosomes
 	initializeMutationType("m3", 0.5, "f", 0.0); // neutral on unlinked chromosome
-	initializeMutationType("m2", 0.0, "f", 0.0); // summer
+	initializeMutationType("m2", 0.0, "f", 0.0); // seasonal mutations (summer favoured)
 	initializeGenomicElementType("g1", m1, 1.0);
 	initializeGenomicElement(g1, 0, genomeSize-1);
 	m2.color = "pink";
@@ -58,9 +55,10 @@ initialize() {
 }
 
 1 early() {
-	sim.addSubpop("p0", n_s);
+	sim.addSubpop("p0", n_s); // set population size
+	//define label
 	if (fit==0){
-		if (n_s==n_w){
+		if (n_s==n_w){ 
 			defineGlobal("label", paste0("nofit_", rep));}else{
 			defineGlobal("label", paste0("FP_nofit_", rep));}}
 	else{
@@ -76,7 +74,7 @@ initialize() {
 		if (fit>0){
 			sites=rdunif(L, 1, 68900002); //selected sites on first three chromosomes
 			
-			
+			// sample seasonal dominance and effect sizes as per Wittmann et al. 2017 https://doi.org/10.1073/pnas.1702994114
 			data = c(1, 0.9, 0.9, 1);
 			mu=c(0,0);
 			sigma=matrix(data, ncol=2);
@@ -85,7 +83,7 @@ initialize() {
 			effects=rmvnorm(L, mu, sigma);
 			
 			for (i in 1:L-1){
-				if (s_dom[i] + w_dom[i] <=1){
+				if (s_dom[i] + w_dom[i] <=1){ //check that combined seasonal dominance is greater than 1
 					do{
 						s= runif(1, 0, 1);
 						w=runif(1, 0, 1);}
@@ -94,7 +92,7 @@ initialize() {
 						s_dom[i] =s;
 						w_dom[i] = w;
 					}}}
-			
+			// set seasonal values as global variables
 			defineGlobal("s_d", s_dom);
 			defineGlobal("w_d", w_dom);
 			defineGlobal("s_fx", exp(effects[,0]));
@@ -102,20 +100,21 @@ initialize() {
 			
 			for (i in 1:L){
 				pos=sites[i-1];
-				
+				// draw in seasonal mutations at 50% frequency
 				target = sample(p0.genomes, asInteger(n_s));
 				target.addNewDrawnMutation(m2, asInteger(pos));
 			}
 			
+			// record seasonal effect size and dominance for each selected allele to be used in other simulations
 			defineGlobal("mutations", sim.mutationsOfType(m2));
-			line3 = "mut_pos	s_d	w_d	s_fx	w_fx"; //record initial frequency and effect size and dominance for each selected allele
+			line3 = "mut_pos	s_d	w_d	s_fx	w_fx"; 
 			writeFile(paste0(results_dir+"/seasonal_mutations_", label,".txt"), line3, append = F);
 			
 			for (i in 1:size(mutations)-1){
 				tab_line = paste(c(mutations[i].position,s_d[i], w_d[i],s_fx[i], w_fx[i]), sep = "	");
 				writeFile(paste0(results_dir,"/seasonal_mutations_", label,".txt"), tab_line, append = T);
 			
-			}} else{
+			}} else{ // if fitness = 0, call in seasonal mutation information to ensure mutations are the same between selection types
 			
 			if (n_s==n_w){
 				seasonalinfo=paste0(results_dir,"/seasonal_mutations_",L, "_", y,"_", rep,".txt");
