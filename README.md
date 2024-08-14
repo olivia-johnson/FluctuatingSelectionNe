@@ -20,15 +20,16 @@ Parameters for allele frequency simulations are recorded in a text file labelled
 Once the parameter sets have been define, the simulation can be run using the following code,
 
 ```ruby
-python chp4_allele.py ${params} ${replicate number} ${directory}
+python chp4_allele.py ${params} ${replicate number} ${results_dir}
 ```
+This will run [chp4_allele.py](chp4_allele.py), which will read in and parse parameters to the [SLiM simulation](witt_complex_allele.slim).   
 
 ### Genome-wide simulations
 
 To run simulations use the following code 
 
 ```ruby
-slim -d results_dir=${path} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} timeseries_Ne_short.slim
+slim -d results_dir=${results_dir} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} timeseries_Ne_short.slim
 ```
 Where results_dir is the path where you want output to be written to, fitness is either 0 (to turn off fitness function) or 1 (to engage fluctuating fitness model), loci is the number of initial seasonal loci you want drawn onto the genome, epistasis is the parameter _y_, and rep is the replicate number.
 
