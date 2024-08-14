@@ -20,9 +20,16 @@ Parameters for allele frequency simulations are recorded in a text file labelled
 Once the parameter sets have been define, the simulation can be run using the following code,
 
 ```ruby
-python chp4_allele.py ${params} ${replicate number} ${results_dir}
+python chp4_allele.py ${group_x} ${rep} ${results_dir}
 ```
+Where group_x is the parameter set label, rep is the replicate number andresults_dir is the path where you want output to be written to.
+
 This will run [chp4_allele.py](chp4_allele.py), which will read in and parse parameters to the [SLiM simulation](witt_complex_allele.slim).   
+
+Each simulation will produce a file named al_freq_group_x_rep.txt
+
+> [!NOTE]
+> These simulations (particularly with higher loci numbers) are time and memory-intensive.
 
 ### Genome-wide simulations
 
