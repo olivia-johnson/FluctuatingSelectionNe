@@ -15,14 +15,20 @@ conda activate ne_env
 ```
 
 ### Conducting simulations of fluctuating allele frequencies
-Parameters for allele frequency simulations are recorded in a text file labelled [group_x.txt](group_x.txt), where x is replaced by a unique numeric identifier for each parameter set. This file can be used as a template for the parameter file.
+Parameters for allele frequency simulations are recorded in a text file labelled [group_x.txt](group_x.txt), where x is replaced by a unique numeric identifier for each parameter set. This file can be used as a template for the parameter file. The values we used for variables are included in the comments of this file in brackets, with constant values already included in the parameter file. Remove the text in quotation marks before running the simulations.
+
+Once the parameter sets have been define, the simulation can be run using the following code,
+
+```ruby
+python chp4_allele.py ${params} ${replicate number} ${directory}
+```
 
 ### Genome-wide simulations
 
 To run simulations use the following code 
 
 ```ruby
-slim -d results_dir=${results_dir} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} timeseries_Ne_short.slim
+slim -d results_dir=${path} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} timeseries_Ne_short.slim
 ```
 Where results_dir is the path where you want output to be written to, fitness is either 0 (to turn off fitness function) or 1 (to engage fluctuating fitness model), loci is the number of initial seasonal loci you want drawn onto the genome, epistasis is the parameter _y_, and rep is the replicate number.
 
