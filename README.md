@@ -22,7 +22,7 @@ Once the parameter sets have been define, the simulation can be run using the fo
 ```ruby
 python chp4_allele.py ${group_x} ${rep} ${results_dir}
 ```
-Where group_x is the parameter set label, rep is the replicate number andresults_dir is the path where you want output to be written to.
+group_x is the parameter set label, rep is the replicate number and results_dir is the path where you want output to be written to.
 
 This will run [chp4_allele.py](chp4_allele.py), which will read in and parse parameters to the [SLiM simulation](witt_complex_allele.slim).   
 
@@ -33,12 +33,12 @@ Each simulation will produce a file named al_freq_group_x_rep.txt
 
 ### Genome-wide simulations
 
-To run simulations use the following code 
+To run simulations use the following code, 
 
 ```ruby
 slim -d results_dir=${results_dir} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} timeseries_Ne_short.slim
 ```
-Where results_dir is the path where you want output to be written to, fitness is either 0 (to turn off fitness function) or 1 (to engage fluctuating fitness model), loci is the number of initial seasonal loci you want drawn onto the genome, epistasis is the parameter _y_, and rep is the replicate number.
+results_dir is the path where you want output to be written to, fitness is either 0 (to turn off fitness function) or 1 (to engage fluctuating fitness model), loci is the number of initial seasonal loci you want drawn onto the genome, epistasis is the parameter _y_, and rep is the replicate number.
 
 > [!IMPORTANT]
 > You must first run constant timeseries genome-wide simulations with fitness = 1 to determine the seasonal dominance and effect size of each locus. These values are used across simulation types (i.e. [capping](offcap_timeseries.slim) and [seasonal](seasonal_ne.slim)) but are only generated in [timeseries_Ne_short.slim](timeseries_Ne_short.slim) simulations with fitness acting.
