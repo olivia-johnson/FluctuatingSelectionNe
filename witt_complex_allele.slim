@@ -1,10 +1,10 @@
 
 initialize() {
 	if (!exists("tmpdir"))
-	{defineConstant("tmpdir", "~/FluctuatingSelectionNe/");} // call in tmpdir
+	{defineConstant("tmpdir", "~/FluctuatingSelectionNe/");} // call in path to directory
 	
 	if (!exists("GenomeSize"))
-	{defineConstant("GenomeSize", 100); } // genome size
+	{defineConstant("GenomeSize", 100); } // genome size (should be the same as L)
 	
 	if (!exists("L"))
 	{defineConstant("L", 100); }// no. selected seasonal loci
@@ -31,10 +31,10 @@ initialize() {
 	{defineConstant("rGen", 10000);} // remember individuals gen call
 	
 	if (!exists("group"))
-	{defineConstant("group", 1);} // group of parameters
+	{defineConstant("group", 1);} // parameter set
 	
 	if (!exists("sim_run"))
-	{defineConstant("sim_run", 1);} // sim run
+	{defineConstant("sim_run", 1);} // replicate number
 	
 	if (!exists("fit"))
 	{defineConstant("fit",2);} //if fit = 0 fitness function switched off
@@ -58,7 +58,7 @@ initialize() {
 		win = GenomeSize/L;
 		win_mid = win/2;
 		
-		// sample seasonal dominance and effect sizes
+		// sample seasonal dominance and effect sizes as per Wittmann et al. 2017 https://doi.org/10.1073/pnas.1702994114
 		data = c(1, 0.9, 0.9, 1);
 		mu=c(0,0);
 		sigma=matrix(data, ncol=2);
@@ -76,7 +76,7 @@ initialize() {
 					s_dom[i] =s;
 					w_dom[i] = w;
 				}}}
-		
+		// set values as global variables
 		defineGlobal("s_d", s_dom);
 		defineGlobal("w_d", w_dom);
 		defineGlobal("s_fx", exp(effects[,0]));
@@ -104,7 +104,8 @@ initialize() {
 		line3 = "FREQUENCIES \nGen,mut_pos,mut_freq, s_d, w_d, s_fx, w_fx";
 		writeFile(paste(asString(tmpdir)+"/al_freq_group_"+ asString(group) + "_"+ asString(sim_run)+".txt"), line3, append = F);
 		for (i in 1:size(sim.mutations)-1){
-			tab_line = paste(c(sim.cycle,sim.mutations[i].position,sim.mutationFrequencies(p0)[i],s_d[i], w_d[i],s_fx[i], w_fx[i]), sep = ",");
+			// record mutation IDs and seasonal domiannce and effect size values to be used in subsetqent simulation types (only for fitness > 0)
+			tab_line = paste(c(sim.cycle,sim.mutations[i].position,sim.mutationFrequencies(p0)[i],s_d[i], w_d[i],s_fx[i], w_fx[i]), sep = ","); 
 			writeFile(paste(asString(tmpdir)+"/al_freq_group_"+ asString(group) + "_"+ asString(sim_run)+".txt"), tab_line, append = T);
 		}
 	}
