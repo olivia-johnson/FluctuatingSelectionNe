@@ -108,13 +108,14 @@ amplitudes[, amp := av_max-av_min, c("id", "group","label", "sampTime", "env", "
 amplitudes[, year:=as.integer(sampTime)*9000, by="sampTime"]  # set year
 amplitudes[, clean_lab:=paste0("l = ", l), by= "l"] # add l label
 
-segloc_data=unique(na.omit(alfreq_data[Gen>1, .(Gen, n_seg, y, id, env, l)]))
-segloc_data[, n_seg_rep:=n_seg/20, by=c("Gen", "y", "l" )]
-segdata=unique(segloc_data[Gen<28000, .(Gen, y, l, n_seg_rep)])
-segdata[, clean_l:=paste0("l = ", l), by = "l"]
+segloc_data=unique(na.omit(alfreq_data[Gen>1, .(Gen, n_seg, y, id, env, l)])) ## isolate unique mutation information
+segloc_data[, n_seg_rep:=n_seg/20, by=c("Gen", "y", "l" )] # avergae the number of segregating loci across replicates
+segdata=unique(segloc_data[Gen<28000, .(Gen, y, l, n_seg_rep)]) #remove any additional duplicates
+segdata[, clean_l:=paste0("l = ", l), by = "l"] # add l label
+# create empty data.table for figure
 dummy <- data.table(Gen = c(0, 27000, 0, 27000, 0, 27000 ), n_seg = c(0, 100, 0, 200, 0, 500), l=c(100,100,200,200,500,500))
 
-l_labels<-c("l = 100", "l = 200", "l = 500")
+l_labels<-c("l = 100", "l = 200", "l = 500") # set labels
 names(l_labels)<-c("100", "200", "500")
 Fig1 = ggplot(segdata, aes(x = Gen)) + 
   geom_blank(data=dummy, aes(x=Gen, y=n_seg))+
@@ -127,7 +128,7 @@ ggsave(filename =paste0("plots/Figure1.jpg"), plot = Fig1 , width = 11, height =
 
 ## Figure 2 - Distribution of the amplitude of allele frequency fluctuations across time. 
 
-amplitudes[, clean_y:=paste0("y = ", y), by= "y"]
+amplitudes[, clean_y:=paste0("y = ", y), by= "y"] # add y label
 
 al.dist = ggplot(amplitudes[y>1 & year<20000 ],aes(x = amp, col = factor(year))) + 
   geom_density() + scale_x_log10()+
@@ -138,21 +139,24 @@ ggsave(filename="plots/Figure2.pdf", al.dist, width = 8, height =8)
 ggsave(filename="plots/Figure2.jpg", al.dist, width = 8, height =8)
 
 ## Figure 3 - Relationship between number of segregating loci, epistasis, and amplitude of seasonal allele frequency fluctuation.
-
+# calculate average max, mean and minimum allele frequency
 amps = intermediate[yamp>0, .(av_max = mean(ymax), av_min = mean(ymin), av_amp = mean(yamp)), by=c("id","group", "label", "sampTime", "env", "y", "l","run")]
+# calculate the average amplitude per replicate
 amps[, amp := av_max-av_min, c("id", "group","label", "sampTime", "env", "y","run")]
-amps[, year:=as.integer(sampTime)*9000, by="sampTime"]
-nseg.scaled=amps[, .N, by=c("label","run", "year", "env","l","y")]
+amps[, year:=as.integer(sampTime)*9000, by="sampTime"] # set year
+nseg.scaled=amps[, .N, by=c("label","run", "year", "env","l","y")] # count the number of segregating loci at each time point
+# calculate the mean, variance, median and 90% quantile of amplitude for each replicate
 amps[, `:=` (mean=mean(amp), var=var(amp), med=median(amp), nq=quantile(amp, probs=0.9)), by=c("label","run", "year", "env","y")]
+# merge data sets for plotting
 nseg.scaled=merge(nseg.scaled, unique(amps[, .(group, label, run, year, mean, var, med, nq)]), by=c("label", "run", "year"))
 
-
+# rename mean, median and 90% Quartile labels
 xx <- names(nseg.scaled); xx[9] <- "Mean"; xx[11] <-"Median"; xx[12] <-"90% Quartile"
 setnames(nseg.scaled, xx)
-
+# transform data set to plot in one figure
 fig3.data=melt(nseg.scaled[,c(1:9,11:12)], measure.vars = c("Mean", "Median", "90% Quartile"), variable.name = "stat")
 
-fig3.data[, clean_l:=paste0("l = ", l), by= "l"]
+fig3.data[, clean_l:=paste0("l = ", l), by= "l"] # set labels
 fig3.data[, clean_y:=paste0("y = ", y), by= "y"]
 
 fig.3=ggplot(fig3.data[year==18000],aes(x=N, y=value,col=factor(y)))+
@@ -168,10 +172,10 @@ ggsave(filename =paste0("plots/Figure3.pdf"), plot = fig.3 , width = 8, height =
 
 ## Multiple regression models and sampling empirically-based simulation parameters
 
-nseg.scaled[, y_numeric := as.numeric(y)]
+nseg.scaled[, y_numeric := as.numeric(y)] # ensure y values are numeric
 
 # remove the neutral data and select the last year for fitting the model
-ID = nseg.scaled$y != "Drift" & nseg.scaled$year == 18000
+ID = nseg.scaled$y != "Drift" & nseg.scaled$year == 18000 
 
 # 3D plot, all three axes are logged. Suggests a plain surface would fit well to logged data.
 fig <- plot_ly(nseg.scaled[ID ], x = ~N, y = ~Mean, z = ~y_numeric, color = ~y)
@@ -194,34 +198,34 @@ summary(mod2)
 
 anova(mod1, mod2)  # The model with the interaction term fits significantly better
 
-## fitting inital loci from final loci
-seg.data = nseg.scaled[year==18000]
-seg.data[, log_l:=log10(l)]
+## Fitting initial loci from final loci
+seg.data = nseg.scaled[year==18000] # subset data to just final sampling point
+seg.data[, log_l:=log10(l)] # log the loci number
+# Plot of 3-dimensions
 fig <- plot_ly(seg.data, x = ~l, y = ~N, z = ~y_numeric, color = ~y)
 fig <- fig %>% add_markers()
 fig <- fig %>% layout(scene = list(xaxis = list(title = 'Inital Seg Loci'),
                                    yaxis = list(title = 'Final Seg Loci'),
                                    zaxis = list(title = 'Epistasis')))
 fig
-
-
+# test both additive and interactive models
 smod1= lm(l ~ N+y_numeric, data = seg.data)
 smod2= lm(l ~ N*y_numeric, data = seg.data)
 summary(smod1)
 summary(smod2)
-
+# Test which model fits better, r^2 is slightly higher for interactive model (smod2)
 anova(smod1, smod2)
 
-## Derive values
+## Derive values from empirical parameters
 
-sample_l=c(111, 90, 264, 27, 9)
-sample_amp=c(0.05, 0.08, 0.02, 0.04, 0.35)
-samps_mean=data.table(log_N=log10(sample_l), log_mean=log10(sample_amp))
-mean_y=mod2 %>% predict(samps_mean)
-samps_mean$y=10^mean_y ## used y values rounded to nearest 0.5
+sample_l=c(111, 90, 264, 27, 9) # final loci numbers from empirical studies (see main text for explanations)
+sample_amp=c(0.05, 0.08, 0.02, 0.04, 0.35) # amplitudes of fluctuations from empirical data
+samps_mean=data.table(log_N=log10(sample_l), log_mean=log10(sample_amp)) # log the number of final loci and amplitude
+mean_y=mod2 %>% predict(samps_mean) # predict the epistasis parameter (y) for each combination of parameters
+samps_mean$y=10^mean_y ## un-log y value, used y values rounded to nearest 0.5
 
-samps_loci=data.table(N=sample_l, y_numeric=round(samps_mean$y))
-initial_l=smod2%>% predict(samps_loci)
-samps_loci$L=initial_l
+samps_loci=data.table(N=sample_l, y_numeric=round(samps_mean$y)) # table of final loci number and derived y values
+initial_l=smod2%>% predict(samps_loci) # predict the initial loci number
+samps_loci$L=initial_l # add initial loci number to table
 
 
