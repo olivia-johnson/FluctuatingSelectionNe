@@ -136,16 +136,16 @@ initialize() {
 		}
 		unlinked_sites= (96900003-68900002)/neutral_dist; //neutral sites on the unlinked chromosome with no seasonal mutations
 		for (j in 1:unlinked_sites){
-			pos=68900002+(j*neutral_dist);
+			pos=68900002+(j*neutral_dist); // set positions of mutations
 			
-			target = sample(p0.genomes, asInteger(n_s)); // draw in at 50% frequency
+			target = sample(p0.genomes, asInteger(n_s)); // draw in randomly at 50% frequency
 			target.addNewDrawnMutation(m3, asInteger(pos));
 		}
 		neutral_sites= 68900002/neutral_dist; //neutral sites on first three chromosomes
 		for (k in 1:neutral_sites){
-			pos=k*neutral_dist;
+			pos=k*neutral_dist; // set positions of mutations
 			
-			target = sample(p0.genomes, asInteger(n_s)); // draw in at 50% frequency
+			target = sample(p0.genomes, asInteger(n_s)); // draw in randomly at 50% frequency
 			target.addNewDrawnMutation(m1, asInteger(pos));
 		}
 	
@@ -162,23 +162,23 @@ initialize() {
 	}
 }
 // implement fitness function from Wittmann et al. 2017 https://doi.org/10.1073/pnas.1702994114
-s1 fitnessEffect() { //summer
+s1 fitnessEffect() { 
 	if (fit == 0){
 		return 1.0;
 	} else{
 		genomes=individual.genomes.mutationCountsInGenomes(mutations=mutations);
-		ns = asInteger(genomes==2); //homozygosity summer
-		het = asInteger(genomes==1);  // heterozygosity
-		nw = asInteger(genomes==0);  //homozygosity winter
-		if (modValueSeason >= 0 & modValueSeason < g_s) { //summer
-			dom = het*s_d;
-			zs=sum((dom+ns)*s_fx);
-			return (1 + zs)^y; }
+		ns = asInteger(genomes==2); //number of summer homozygotes
+		het = asInteger(genomes==1);  // number of heterozygotes
+		nw = asInteger(genomes==0);  //number of winter homozygotes
+		if (modValueSeason >= 0 & modValueSeason < g_s) { //if summer use summer dominance and effect size
+			dom = het*s_d; //calculate contribution of heterozygotes
+			zs=sum((dom+ns)*s_fx); // calculate z score, combine heterozygote contribution and number of summer homozygotes and times them by the summer effect size 
+			return (1 + zs)^y; } // add z score to diminishing returns fitness function
 		
 		else { // winter
-			dom = het*w_d;
-			zw=sum((dom+nw)*w_fx);
-			return (1 + zw)^y;}
+			dom = het*w_d; //calculate contribution of heterozygotes
+			zw=sum((dom+nw)*w_fx);// calculate z score, combine heterozygote contribution and number of winter homozygotes and times them by the winter effect size 
+			return (1 + zw)^y;} // add z score to diminishing returns fitness function
 	}
 }
 
@@ -199,7 +199,7 @@ early(){
 }
 
 10 late() { //calculate Ne 
-	linked_muts=sim.mutationsOfType(m1); // record IDs of neutral mutations linked to seaosnal loci
+	linked_muts=sim.mutationsOfType(m1); // record IDs of neutral mutations linked to seasonal loci
 	mut_freq = sim.mutationFrequencies(p0, mutations=linked_muts); // record frequencies of these mutations
 	
 	al_change=mut_freq-0.50; // calculate the allele frequency change from 50%
@@ -208,17 +208,17 @@ early(){
 	mean_Flinked=mean(F_linked); // averge F value for all linked neutral loci
 	Ne=-g/(2*log(1-mean_Flinked)); // calculate Ne
 	
-	unlinked_muts=sim.mutationsOfType(m3); // record IDs of neutral mutations unlinked from seaosnal loci
+	unlinked_muts=sim.mutationsOfType(m3); // record IDs of neutral mutations unlinked from seasonal loci
 	unlinked_freq = sim.mutationFrequencies(p0, mutations=unlinked_muts); // record frequencies of these mutations
 	
 	unlinked_change=unlinked_freq-0.50; // calculate the allele frequency change from 50%
 	uaf_var=var(unlinked_change); // calculate the variance in allele frequency change
 	F_unlinked=(unlinked_change^2)/(0.25); // calculate F value
-	mean_Funlinked=mean(F_unlinked); // averge F value for all linked neutral loci
+	mean_Funlinked=mean(F_unlinked); // averge F value for all unlinked neutral loci
 	Ne_unlinked=-g/(2*log(1-mean_Funlinked)); // calculate Ne
 	 // record values
 	writeFile(paste0(results_dir, "timeseries_ne_", label, ".txt"), paste(gen,af_var, mean_Flinked, Ne, uaf_var, mean_Funlinked,Ne_unlinked, sep="\t"),append=T);
-	// remove neutral mutations until next sampling point to speed up simulationFinished
+	// remove neutral mutations until next sampling point to speed up simulation
 	sim.subpopulations.genomes.removeMutations(linked_muts);
 	sim.subpopulations.genomes.removeMutations(unlinked_muts);}
 

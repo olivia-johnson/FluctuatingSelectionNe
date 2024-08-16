@@ -110,24 +110,24 @@ initialize() {
 		}
 	}
 }
-// fitness model as presented by Wittmann et al. 2017 https://doi.org/10.1073/pnas.1702994114
-s1 fitnessEffect() { //summer
+// implement fitness function from Wittmann et al. 2017 https://doi.org/10.1073/pnas.1702994114
+s1 fitnessEffect() { 
 	if (fit == 0){
 		return 1.0;
 	} else{
 		genomes=individual.genomes.mutationCountsInGenomes(mutations=mutations);
-		ns = asInteger(genomes==2); //homozygosity summer
-		het = asInteger(genomes==1);  // heterozygosity
-		nw = asInteger(genomes==0);  //homozygosity winter
-		if (modValueSeason >= 0 & modValueSeason < g_s) { //summer
-			dom = het*s_d;
-			zs=sum((dom+ns)*s_fx);
-			return (1 + zs)^y; }
+		ns = asInteger(genomes==2); //number of summer homozygotes
+		het = asInteger(genomes==1);  // number of heterozygotes
+		nw = asInteger(genomes==0);  //number of winter homozygotes
+		if (modValueSeason >= 0 & modValueSeason < g_s) { //if summer use summer dominance and effect size
+			dom = het*s_d; //calculate contribution of heterozygotes
+			zs=sum((dom+ns)*s_fx); // calculate z score, combine heterozygote contribution and number of summer homozygotes and times them by the summer effect size 
+			return (1 + zs)^y; } // add z score to diminishing returns fitness function
 		
 		else { // winter
-			dom = het*w_d;
-			zw=sum((dom+nw)*w_fx);
-			return (1 + zw)^y;}
+			dom = het*w_d; //calculate contribution of heterozygotes
+			zw=sum((dom+nw)*w_fx);// calculate z score, combine heterozygote contribution and number of winter homozygotes and times them by the winter effect size 
+			return (1 + zw)^y;} // add z score to diminishing returns fitness function
 	}
 }
 
