@@ -58,5 +58,5 @@ To run simulations with offspring capping or sample only across a single seasona
 
 To simulated differing population sizes, you can use the following command, and changing the summer and winter population size values,
 ``` ruby
-slim -d results_dir=${results_dir} -d n_s=${summer_pop_size} -d n_w=${winter_pop_size} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} scaled_timeseries.slim
+slim -d results_dir=${results_dir} -d n_s=${summer_pop_size} -d n_w=${winter_pop_size} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} scaled_pop_gw.slim
 ```
