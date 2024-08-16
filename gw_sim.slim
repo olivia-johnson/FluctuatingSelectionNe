@@ -8,7 +8,7 @@ initialize() {
 	{defineConstant("L", 154); }// no. selected seasonal loci
 	
 	if (!exists("y"))
-	{defineConstant("y", 11.5); }// exponent of fitness function
+	{defineConstant("y", 11.5); }// exponent of fitness function (epistasis parameter)
 	
 	if (!exists("n_s"))
 	{defineConstant("n_s", 5e5); }// summer population size
@@ -58,7 +58,7 @@ initialize() {
 	sim.addSubpop("p0", n_s); // set population size
 	//define label
 	if (fit==0){
-		if (n_s==n_w){ 
+		if (n_s==n_w){ // set label
 			defineGlobal("label", paste0("nofit_", rep));}else{
 			defineGlobal("label", paste0("FP_nofit_", rep));}}
 	else{
@@ -114,7 +114,7 @@ initialize() {
 				tab_line = paste(c(mutations[i].position,s_d[i], w_d[i],s_fx[i], w_fx[i]), sep = "	");
 				writeFile(paste0(results_dir,"/seasonal_mutations_", label,".txt"), tab_line, append = T);
 			
-			}} else{ // if fitness = 0, call in seasonal mutation information to ensure mutations are the same between selection types
+ 			}} else{ // call in seasonal mutation information to ensure mutations are the same between selection types
 			
 			if (n_s==n_w){
 				seasonalinfo=paste0(results_dir,"/seasonal_mutations_",L, "_", y,"_", rep,".txt");
@@ -134,25 +134,26 @@ initialize() {
 			}
 			defineGlobal("mutations", sim.mutationsOfType(m2));
 		}
-		unlinked_sites= (96900003-68900002)/neutral_dist; //neutral sites on the unlinked chromosome
+		unlinked_sites= (96900003-68900002)/neutral_dist; //neutral sites on the unlinked chromosome with no seasonal mutations
 		for (j in 1:unlinked_sites){
 			pos=68900002+(j*neutral_dist);
 			
-			target = sample(p0.genomes, asInteger(n_s));
+			target = sample(p0.genomes, asInteger(n_s)); // draw in at 50% frequency
 			target.addNewDrawnMutation(m3, asInteger(pos));
 		}
 		neutral_sites= 68900002/neutral_dist; //neutral sites on first three chromosomes
 		for (k in 1:neutral_sites){
 			pos=k*neutral_dist;
 			
-			target = sample(p0.genomes, asInteger(n_s));
+			target = sample(p0.genomes, asInteger(n_s)); // draw in at 50% frequency
 			target.addNewDrawnMutation(m1, asInteger(pos));
 		}
 	
 	
 	}
+	// set up output file
 	writeFile(paste0(results_dir, "timeseries_ne_", label, ".txt"), paste("Time", "af_var_linked","linked_F","linked_Ne","af_var_unlinked","unlinked_F", "unlinked_Ne", sep="\t"),append=F); //create Ne file
-	
+	// record frequencies of seasonal mutations
 	line3 = "FREQUENCIES \nGen,mut_id,mut_freq"; //record initial frequency and effect size and dominance for each selected allele
 	writeFile(paste0(results_dir+"/timeseries_al_freq_ne_", label,".txt"), line3, append = F);
 	for (i in 1:size(mutations)-1){
@@ -160,7 +161,7 @@ initialize() {
 		writeFile(paste0(results_dir+"/timeseries_al_freq_ne_", label,".txt"), tab_line, append = T);
 	}
 }
-
+// implement fitness function from Wittmann et al. 2017 https://doi.org/10.1073/pnas.1702994114
 s1 fitnessEffect() { //summer
 	if (fit == 0){
 		return 1.0;
@@ -182,46 +183,46 @@ s1 fitnessEffect() { //summer
 }
 
 early(){
-	defineGlobal("gen", sim.cycle);
-	defineGlobal("modValueSeason",integerMod(gen, g));
-	defineGlobal("modValueSample", integerMod(gen, 1000));
+	defineGlobal("gen", sim.cycle); // record generation
+	defineGlobal("modValueSeason",integerMod(gen, g)); // determine generation in season
+	defineGlobal("modValueSample", integerMod(gen, 1000)); // determine sampling points
 	if (modValueSeason >= 0 & modValueSeason < g_s) { //summer
 		if (modValueSeason == 0){
-			p0.setSubpopulationSize(n_s);}
+			p0.setSubpopulationSize(n_s);} // set summer population size
 		if (exists("slimgui")) {cat("Summer\n");}
 	}
 	if (modValueSeason >= g_s) { //winter
-		if (modValueSeason == g_s){
+		if (modValueSeason == g_s){ //set winter population size
 			p0.setSubpopulationSize(n_w);}
 		if (exists("slimgui")) {cat("Winter\n");}
 	}
 }
 
 10 late() { //calculate Ne 
-	linked_muts=sim.mutationsOfType(m1);
-	mut_freq = sim.mutationFrequencies(p0, mutations=linked_muts);
+	linked_muts=sim.mutationsOfType(m1); // record IDs of neutral mutations linked to seaosnal loci
+	mut_freq = sim.mutationFrequencies(p0, mutations=linked_muts); // record frequencies of these mutations
 	
-	al_change=mut_freq-0.50;
-	af_var=var(al_change);
-	F_linked=(al_change^2)/0.25;
-	mean_Flinked=mean(F_linked);
-	Ne=-g/(2*log(1-mean_Flinked));
+	al_change=mut_freq-0.50; // calculate the allele frequency change from 50%
+	af_var=var(al_change); // calculate the variance in allele frequency change
+	F_linked=(al_change^2)/0.25; // calculate F value
+	mean_Flinked=mean(F_linked); // averge F value for all linked neutral loci
+	Ne=-g/(2*log(1-mean_Flinked)); // calculate Ne
 	
-	unlinked_muts=sim.mutationsOfType(m3);
-	unlinked_freq = sim.mutationFrequencies(p0, mutations=unlinked_muts);
+	unlinked_muts=sim.mutationsOfType(m3); // record IDs of neutral mutations unlinked from seaosnal loci
+	unlinked_freq = sim.mutationFrequencies(p0, mutations=unlinked_muts); // record frequencies of these mutations
 	
-	unlinked_change=unlinked_freq-0.50;
-	uaf_var=var(unlinked_change);
-	F_unlinked=(unlinked_change^2)/(0.25);
-	mean_Funlinked=mean(F_unlinked);
-	Ne_unlinked=-g/(2*log(1-mean_Funlinked));
-	
+	unlinked_change=unlinked_freq-0.50; // calculate the allele frequency change from 50%
+	uaf_var=var(unlinked_change); // calculate the variance in allele frequency change
+	F_unlinked=(unlinked_change^2)/(0.25); // calculate F value
+	mean_Funlinked=mean(F_unlinked); // averge F value for all linked neutral loci
+	Ne_unlinked=-g/(2*log(1-mean_Funlinked)); // calculate Ne
+	 // record values
 	writeFile(paste0(results_dir, "timeseries_ne_", label, ".txt"), paste(gen,af_var, mean_Flinked, Ne, uaf_var, mean_Funlinked,Ne_unlinked, sep="\t"),append=T);
-	
+	// remove neutral mutations until next sampling point to speed up simulationFinished
 	sim.subpopulations.genomes.removeMutations(linked_muts);
 	sim.subpopulations.genomes.removeMutations(unlinked_muts);}
 
-
+// recording of seasonal alelle frequencies and calculation of Ne as above
 11:10010 late(){
 	if (modValueSample >=0 & modValueSample<11){
 		for (i in 1:size(mutations)-1){
@@ -273,7 +274,7 @@ early(){
 		sim.subpopulations.genomes.removeMutations(sim.mutationsOfType(m3));
 	}
 }
-
+// end simulation
 10011 early(){
 	
 	sim.simulationFinished();
