@@ -35,7 +35,7 @@ initialize() {
 	if (!exists("rep"))
 	{defineConstant("rep", 0);} // replicate number
 	
-	initializeMutationRate(0); // no mutation
+	initializeMutationRate(0.0); // no mutation
 	
 	map = readCSV(paste0(results_dir,"slim_recmap.csv") , c("ends", "rates"), sep="\t"); // read in Drosophila recombination map (Comeron et al 2012)
 	ends = map.getValue("ends");
