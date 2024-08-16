@@ -55,3 +55,8 @@ To run simulations with offspring capping or sample only across a single seasona
 > You must first run a constant population size genome-wide simulation with fitness = 1 to determine the seasonal dominance and effect size of each locus. These values are used across simulation types (i.e. [capping](capping.slim) and [seasonal](seasonal_ne.slim)) but are only generated in [gw_sim.slim](gw_sim.slim) simulations with fitness acting.
 >
 > Each replicate of each parameter set (loci number and _y_ value) will have a different set of seasonal mutations that will be used across simulation types (i.e. seasonal mutations are constant for replicate 1 across the different simulations).
+
+To simulated differing population sizes, you can use the following command, and changing the summer and winter population size values,
+``` ruby
+slim -d results_dir=${results_dir} -d n_s=${summer_pop_size} -d n_w=${winter_pop_size} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} scaled_timeseries.slim
+111
