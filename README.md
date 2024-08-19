@@ -36,7 +36,7 @@ Each simulation will produce a file named al_freq_group_x_rep.txt
 ### Examining and fitting allele frequency trajectories
 
 The output of the allele frequency simulations are used in [allele_analysis.R](allele_analysis.R). 
-This script compiles the output files, analyses the allele frequency trajectories in comparison to the parameters of the simulations, and fits multiple regression models to obtain empirically-derived parameters for the following whole genome simulations.
+This script compiles the output files, analyses the allele frequency trajectories in comparison to the parameters of the simulations, and fits multiple regression models to obtain empirically derived parameters for the following whole genome simulations.
 
 ### Genome-wide simulations
 
@@ -45,7 +45,7 @@ To run constant population size simulations use the following code,
 ```ruby
 slim -d results_dir=${results_dir} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} gw_sim.slim
 ```
-results_dir is the path where you want output to be written to, fitness is either 0 (to turn off fitness function) or 1 (to engage fluctuating fitness model), loci is the number of initial seasonal loci you want drawn onto the genome, epistasis is the parameter _y_, and rep is the replicate number.
+results_dir is the path where you want the output to be written to, fitness is either 0 (to turn off fitness function) or 1 (to engage fluctuating fitness model), loci is the number of initial seasonal loci you want drawn onto the genome, epistasis is the parameter _y_, and rep is the replicate number.
 
 For a fluctuating population size, you also need to specify the winter population size (n_w),
 
@@ -59,7 +59,7 @@ To run simulations with offspring capping or sample only across a single seasona
 >
 > Each replicate of each parameter set (loci number and _y_ value) will have a different set of seasonal mutations that will be used across simulation types (i.e. seasonal mutations are constant for replicate 1 across the different simulations).
 
-To simulated differing population sizes, you can use the following command, and changing the summer and winter population size values,
+To simulate differing population sizes, you can use the following command, changing the summer and winter population size values,
 ``` ruby
 slim -d results_dir=${results_dir} -d n_s=${summer_pop_size} -d n_w=${winter_pop_size} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} scaled_pop_gw.slim
 ```
