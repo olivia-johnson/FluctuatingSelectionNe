@@ -61,7 +61,11 @@ To run simulations with offspring capping or sample only across a single seasona
 >
 > Each replicate of each parameter set (loci number and _y_ value) will have a different set of seasonal mutations that will be used across simulation types (i.e. seasonal mutations are constant for replicate 1 across the different simulations).
 
-To simulate differing population sizes, you can use the following command, changing the summer and winter population size values,
+To simulate differing population sizes, you can use the following command, changing the summer and winter population size values (10000, 50000, 100000, 500000),
 ``` ruby
 slim -d results_dir=${results_dir} -d n_s=${summer_pop_size} -d n_w=${winter_pop_size} -d fit=${fitness} -d  L=${loci} -d y=${epistasis} -d rep=${rep} scaled_pop_gw.slim
 ```
+The code to analyse the output of the whole genome simulations can be found in [gw_analysis.R](gw_analysis.R).
+
+> [!NOTE]
+> The R code also contains the plot code for the plots found in the manuscript. All plots will be saved to the [plots](plots) folder.
