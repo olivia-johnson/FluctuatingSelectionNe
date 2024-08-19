@@ -35,6 +35,9 @@ Each simulation will produce a file named al_freq_group_x_rep.txt
 
 ### Examining and fitting allele frequency trajectories
 
+The output of the allele frequency simulations are used in [allele_analysis.R](allele_analysis.R). 
+This script compiles the output files, analyses the allele frequency trajectories in comparison to the parameters of the simulations, and fits multiple regression models to obtain empirically-derived parameters for the following whole genome simulations.
+
 ### Genome-wide simulations
 
 To run constant population size simulations use the following code, 
