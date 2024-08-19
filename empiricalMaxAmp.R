@@ -1,4 +1,6 @@
-library(data.table)
+## Load packages and install any missing from the user's R library
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(data.table)
 
 ## Bergland and Machado Maximum amplitude values
 
