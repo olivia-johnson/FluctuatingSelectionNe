@@ -35,7 +35,7 @@ Each simulation will produce a file named al_freq_group_x_rep.txt
 
 ### Examining and fitting allele frequency trajectories
 
-First, run [empiricalMaxAmp.R](empiricalMaxAmp.R) to calculate the mean amplitude for the top 9 loci, as well as the maximum amplitude for the populations in Bergland et al. (2014) and Machado et al. (2021).
+First, run [empiricalMaxAmp.R](empiricalMaxAmp.R) to calculate the mean amplitude for the top 9 loci, as well as the maximum amplitude for the populations in Bergland et al. (2014) and Machado et al. (2021). Links to the datasets are in the R script.
 
 The output of the allele frequency simulations are used in [allele_analysis.R](allele_analysis.R). 
 This script compiles the output files, analyses the allele frequency trajectories in comparison to the parameters of the simulations, and fits multiple regression models to obtain empirically derived parameters for the following whole genome simulations.
