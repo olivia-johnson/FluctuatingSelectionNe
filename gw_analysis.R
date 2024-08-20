@@ -1,13 +1,10 @@
-## gw analysis
+## whole genome analysis
 
-library(data.table)
-library(tidyverse)
-library(scales)
-library(foreach)
-library(Rfast)
-library(ggpubr)
+## Load packages and install any missing from the user's R library
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(data.table, tidyverse, ggpubr)
 
-setwd("~/phd_data/chp4_gw/")
+setwd("~/FluctuatingSelectionNe/")
 
 # Vectors of initial loci number, epistasis parameter, target amplitude of fluctuation, and final loci number
 loci=c(148, 127, 335,37,18)
@@ -141,7 +138,7 @@ ne_data[, rep_reduction:=ne/500000-1, by=c("Time", "linkage", "sim_type", "label
 # Figure 4 - Relative reduction in effective population size due to fluctuating selection
 
 # create amplitude annotations
-relne.labs=mean_amp[sim_type=="Fluctuating", .( amp=mean(amp)), by="label"]
+relne.labs=mean_amp[sim_type=="Fluctuating", .( amp=round(mean(amp),1)), by="label"]
 
 rel_ne=ggplot(ne_data[linkage=="unlinked" & sim_type!="Capped Fluctuating" & sim_type!="Capped Neutral"], aes(x=Time))+
   geom_line(aes(y=reduction, group=sim_type, col=sim_type), linewidth=1)+
