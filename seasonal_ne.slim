@@ -178,7 +178,7 @@ early(){
 	af_var=var(al_change); // calculate the variance in allele frequency change
 	F_linked=(al_change^2)/0.25; // calculate F value
 	mean_Flinked=mean(F_linked); // averge F value for all linked neutral loci
-	Ne=-g/(2*log(1-mean_Flinked)); // calculate Ne
+	Ne=-1/(2*log(1-mean_Flinked)); // calculate Ne
 	
 	defineGlobal("unlinked_muts",sim.mutationsOfType(m3));
 	defineGlobal("unlinked_freq", sim.mutationFrequencies(p0, mutations=unlinked_muts));
@@ -213,14 +213,14 @@ early(){
 		af_var=var(al_change); // calculate variance in the allele frequency change
 		F_linked=(al_change^2)/0.25; // caluclate F value
 		mean_Flinked=mean(F_linked); // average F across loci
-		Ne=-g/(2*log(1-mean_Flinked)); // calculate Ne
+		Ne=-1/(2*log(1-mean_Flinked)); // calculate Ne
 		defineGlobal("mut_freq", sim.mutationFrequencies(p0, mutations=linked_muts)); // save frequencies of alleles from current generation
 				
 		unlinked_change=sim.mutationFrequencies(p0, mutations=unlinked_muts)-unlinked_freq; // calculate allele frequency change between this generation and the previous one
 		uaf_var=var(unlinked_change); // calculate variance in allele frequency change
 		F_unlinked=(unlinked_change^2)/(0.25); // calculate F value
 		mean_Funlinked=mean(F_unlinked); //average F across loci
-		Ne_unlinked=-g/(2*log(1-mean_Funlinked)); // Calculate Ne
+		Ne_unlinked=-1/(2*log(1-mean_Funlinked)); // Calculate Ne
 		defineGlobal("unlinked_freq", sim.mutationFrequencies(p0, mutations=unlinked_muts)); // save frequenies of alleles in current generation
 		// record values
 		writeFile(paste0(results_dir, "season_ne_", label, ".txt"), paste(gen,af_var, mean_Flinked, Ne, uaf_var, mean_Funlinked,Ne_unlinked, sep="\t"),append=T);}
