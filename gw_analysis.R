@@ -227,7 +227,7 @@ s_ne=ggplot()+geom_vline(xintercept = 2505, col="blue", linetype="dotted")+
   geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=reduction, group=label), linewidth=1)+
   geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=rep_reduction, group=id, col=label), linewidth=0.5, alpha=0.5)+
   theme_bw()+coord_cartesian(x=c(2500,2510))+ scale_x_continuous(breaks=c(2500,2505,2510))+ 
-  labs(x="Generations", y="Ne", col="Simulation Parameters") + facet_wrap(~label,nrow=1)+theme(legend.position = 'none')
+  labs(x="Generations", y="Relative Reduction in Ne", col="Simulation Parameters") + facet_wrap(~label,nrow=1)+theme(legend.position = 'none')
 ggsave(paste0("plots/FigureS3.pdf"), s_ne, width=10, height=3)
 ggsave(paste0("plots/FigureS3.jpg"), s_ne, width=10, height=3)
 
@@ -235,7 +235,7 @@ s_ne_mean=ggplot()+geom_vline(xintercept = 2505, col="blue", linetype="dotted")+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=reduction, group=label, col=label), linewidth=1)+
   theme_bw()+coord_cartesian(x=c(2500,2510))+ scale_x_continuous(breaks=c(2500,2502,2504,2506,2508,2510))+ 
-  labs(x="Generations", y="Ne", col="Selection Parameters") 
+  labs(x="Generations", y="Relative Reduction in Ne", col="Selection Parameters") 
 
 ggsave(paste0("plots/Figure5.pdf"), s_ne_mean, width=5, height=2.5)
 ggsave(paste0("plots/Figure5.jpg"), s_ne_mean, width=5, height=2.5)
