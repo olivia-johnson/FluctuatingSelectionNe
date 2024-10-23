@@ -61,17 +61,15 @@ for (g in groups){
     alfreq_data  = rbind(alfreq_data , al_freq )
   }
 }
-alfreq_data[gen_season == "EG", gen_year:=Gen%%20, by=c("label", "Gen")] # set generation in the seasonal cycle/year
-alfreq_data[gen_season == "UG", gen_year:=Gen%%10, by=c("label", "Gen")] 
-alfreq_data[gen_season == "EG", season:=ifelse((gen_year<11 & gen_year>0), "summer", "winter"), by=c("Gen")] # set season
-alfreq_data[gen_season == "UG", season:=ifelse((gen_year<11 & gen_year>0), "summer", "winter"), by=c("Gen")]
+alfreq_data[gen_season == "EG", gen_year:=Gen%%10, by=c("label", "Gen")] # set generation in the seasonal cycle/year
+alfreq_data[gen_season == "EG", season:=ifelse((gen_year<5 & gen_year>0), "summer", "winter"), by=c("Gen")] # set season
 alfreq_data [, id :=paste0(group, "_", run, "_",mut_pos)] # give each mutation a unique id
 alfreq_data[mut_freq!=1, Freq.bin:="Segregating"] # label alleles that are segregating
 alfreq_data[mut_freq==1, Freq.bin:="Fixed_Summer"] # label alleles that are fixed
 alfreq_data[Freq.bin=="Segregating",n_seg:=.N, by = c("Gen", "label","l")] # count the number of segregating alleles
 alfreq_data[, env:=paste(pop_season, gen_season, sep="_"), by="label"] # set env variable (for if using unequal generations per season and fluctuating population size)
-alfreq_data[, year:=ifelse(gen_season=="EG",Gen%/%20, Gen%/%12), by=c("Gen", "gen_season")] # set year/seasonal cycle
-alfreq_data[, sampTime:=ifelse(gen_season=="EG",(20*year)%/%9000, (12*year)%/%9000) , by=c("label","year")] # sampling time
+alfreq_data[, year:=Gen%/%10, by=c("Gen", "gen_season")] # set year/seasonal cycle
+alfreq_data[, sampTime:=(10*year)%/%9000, by=c("label","year")] # sampling time
 alfreq_data[Freq.bin=="Segregating",fc_year:=max(mut_freq)-min(mut_freq), by=c("id", "year")] # yearly frequency change of segregating alleles
 alfreq_data[Gen>=10000, fluctuating:=ifelse(mut_freq!=0 & mut_freq != 1, T, F), by="id"] # determine if fluctuating after initial establishment period 
 
