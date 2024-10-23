@@ -62,7 +62,7 @@ for (g in groups){
   }
 }
 alfreq_data[gen_season == "EG", gen_year:=Gen%%10, by=c("label", "Gen")] # set generation in the seasonal cycle/year
-alfreq_data[gen_season == "EG", season:=ifelse((gen_year<5 & gen_year>0), "summer", "winter"), by=c("Gen")] # set season
+alfreq_data[gen_season == "EG", season:=ifelse((gen_year<6 & gen_year>0), "summer", "winter"), by=c("Gen")] # set season
 alfreq_data [, id :=paste0(group, "_", run, "_",mut_pos)] # give each mutation a unique id
 alfreq_data[mut_freq!=1, Freq.bin:="Segregating"] # label alleles that are segregating
 alfreq_data[mut_freq==1, Freq.bin:="Fixed_Summer"] # label alleles that are fixed
