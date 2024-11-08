@@ -122,6 +122,21 @@ af[Gen==10009 & sim_type=="Fluctuating"&Freq.bin=="Segregating", .(mean_diff=mea
 # overall difference between the derived and actual parameters
 af[Gen==10009 & sim_type=="Fluctuating"&Freq.bin=="Segregating", .(mean_diff=mean(n_diff), max_diff=max(n_diff), mean_amp_diff=mean(abs(amp_diff)), max_amp_diff=max(abs(amp_diff)))]
 
+# Calculate confidence intervals to evaluate regression
+CIdt=NULL
+for (i in 1:length(loci_val)){
+  dt=unique(af[p_N==loci_val[i]&Gen==10009&sim_type=="Fluctuating"&Freq.bin=="Segregating", .(n_seg, p_N, p_amp, rep_amp), by="rep"])
+  nt=t.test(dt$n_seg)
+  nCI=nt$conf.int
+  at=t.test(dt$rep_amp)
+  aCI=at$conf.int
+  CIdt=rbind(CIdt, data.table(l=loci_val[i],p_l=loci[i], amp=amp_val[i],lower_n=nCI[1], upper_n=nCI[2],lower_a=aCI[1], upper_a=aCI[2] ))
+}
+CIdt[,n_within:=ifelse(lower_n<l&upper_n>l, T, F), by="l"]
+CIdt[,a_within:=ifelse(lower_a<amp&upper_a>amp, T, F), by="l"]
+CIdt[,amp_diff:=amp-upper_a, by="l"]
+
+
 # Extract Ne values and relevant metadata
 ne_data=ne_all[,.(Time, linked_Ne, unlinked_Ne, sim_type, rep, label)]
 # transform data set so Ne all in one column
