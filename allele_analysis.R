@@ -1,4 +1,4 @@
-### Examine allele frequency fluctuations and generate multiple regression models###
+ ### Examine allele frequency fluctuations and generate multiple regression models###
 
 ## Load packages and install any missing from the user's R library
 if (!require("pacman")) install.packages("pacman")
@@ -61,15 +61,17 @@ for (g in groups){
     alfreq_data  = rbind(alfreq_data , al_freq )
   }
 }
-alfreq_data[gen_season == "EG", gen_year:=Gen%%10, by=c("label", "Gen")] # set generation in the seasonal cycle/year
-alfreq_data[gen_season == "EG", season:=ifelse((gen_year<6 & gen_year>0), "summer", "winter"), by=c("Gen")] # set season
+alfreq_data[gen_season == "EG", gen_year:=Gen%%20, by=c("label", "Gen")] # set generation in the seasonal cycle/year
+alfreq_data[gen_season == "UG", gen_year:=Gen%%10, by=c("label", "Gen")] 
+alfreq_data[gen_season == "EG", season:=ifelse((gen_year<11 & gen_year>0), "summer", "winter"), by=c("Gen")] # set season
+alfreq_data[gen_season == "UG", season:=ifelse((gen_year<11 & gen_year>0), "summer", "winter"), by=c("Gen")]
 alfreq_data [, id :=paste0(group, "_", run, "_",mut_pos)] # give each mutation a unique id
 alfreq_data[mut_freq!=1, Freq.bin:="Segregating"] # label alleles that are segregating
 alfreq_data[mut_freq==1, Freq.bin:="Fixed_Summer"] # label alleles that are fixed
 alfreq_data[Freq.bin=="Segregating",n_seg:=.N, by = c("Gen", "label","l")] # count the number of segregating alleles
 alfreq_data[, env:=paste(pop_season, gen_season, sep="_"), by="label"] # set env variable (for if using unequal generations per season and fluctuating population size)
-alfreq_data[, year:=Gen%/%10, by=c("Gen", "gen_season")] # set year/seasonal cycle
-alfreq_data[, sampTime:=(10*year)%/%9000, by=c("label","year")] # sampling time
+alfreq_data[, year:=ifelse(gen_season=="EG",Gen%/%20, Gen%/%12), by=c("Gen", "gen_season")] # set year/seasonal cycle
+alfreq_data[, sampTime:=ifelse(gen_season=="EG",(20*year)%/%9000, (12*year)%/%9000) , by=c("label","year")] # sampling time
 alfreq_data[Freq.bin=="Segregating",fc_year:=max(mut_freq)-min(mut_freq), by=c("id", "year")] # yearly frequency change of segregating alleles
 alfreq_data[Gen>=10000, fluctuating:=ifelse(mut_freq!=0 & mut_freq != 1, T, F), by="id"] # determine if fluctuating after initial establishment period 
 
@@ -87,7 +89,7 @@ names(y_labels)<-c("0.5", "1", "2", "4","8","12","16","20")
 
 plot=ggplot()+ geom_density(data=vals[finalseg=="Fixed"], aes(x=meanfx), col="red")+ 
   geom_density(data=vals[finalseg=="Segregating"], aes(x=meanfx))+ facet_wrap(~l_lab+y_lab) +
-  scale_x_log10()+ labs(x="Mean Effect Size", y="Density") + theme_bw()
+  scale_x_log10()+ labs(x="Seasonal Effect Size Ratio", y="Density") + theme_bw()
 ggsave(filename =paste0("plots/FigureS1.jpg"), plot = plot , width = 8, height = 6)
 ggsave(filename =paste0("plots/FigureS1.pdf"), plot = plot , width = 8, height = 6)
 
@@ -138,6 +140,11 @@ ggsave(filename="plots/Figure2.jpg", al.dist, width = 8, height =8)
 
 ## Figure 3 - Relationship between number of segregating loci, epistasis, and amplitude of seasonal allele frequency fluctuation.
 # calculate average max, mean and minimum allele frequency
+# calculate minimum and maximum frequency in year/seasonal cycle
+intermediate = alfreq_data[Freq.bin=="Segregating", .(ymax = max(mut_freq), ymin = min(mut_freq)), by=c("id", "year","sampTime","group", "label", "env", "y", "l", "run") ]
+# calculate amplitude across year
+intermediate[, yamp:=ymax-ymin, by=c("id", "year","sampTime","group", "label", "run") ]
+
 amps = intermediate[yamp>0, .(av_max = mean(ymax), av_min = mean(ymin), av_amp = mean(yamp)), by=c("id","group", "label", "sampTime", "env", "y", "l","run")]
 # calculate the average amplitude per replicate
 amps[, amp := av_max-av_min, c("id", "group","label", "sampTime", "env", "y","run")]
