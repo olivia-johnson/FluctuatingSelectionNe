@@ -2,7 +2,7 @@
 
 ## Load packages and install any missing from the user's R library
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(data.table, ggplot2, plotly)
+pacman::p_load(data.table, ggplot2, plotly, patchwork)
 
 path="~/FluctuatingSelectionNe/" # set path 
 setwd(path) # set working directory
@@ -88,8 +88,8 @@ y_labels=c("y = 0.5", "y = 1","y = 2","y = 4","y = 8", "y = 12", "y = 16","y = 2
 names(y_labels)<-c("0.5", "1", "2", "4","8","12","16","20")
 
 plot=ggplot()+ geom_density(data=vals[finalseg=="Fixed"], aes(x=meanfx), col="red")+ 
-  geom_density(data=vals[finalseg=="Segregating"], aes(x=meanfx))+ facet_wrap(~l_lab+y_lab) +
-  scale_x_log10()+ labs(x="Mean Effect Size", y="Density") + theme_bw()
+  geom_density(data=vals[finalseg=="Segregating"], aes(x=meanfx))+ facet_wrap(~l_lab+factor(y_lab, levels=c("y = 0.5", "y = 1","y = 2","y = 4","y = 8", "y = 12", "y = 16","y = 20"))) +
+  scale_x_log10()+ labs(x="Seasonal Effect Size Ratio", y="Density") + theme_bw()
 ggsave(filename =paste0("plots/FigureS1.jpg"), plot = plot , width = 8, height = 6)
 ggsave(filename =paste0("plots/FigureS1.pdf"), plot = plot , width = 8, height = 6)
 
@@ -113,15 +113,29 @@ segloc_data[, n_seg_rep:=n_seg/20, by=c("Gen", "y", "l" )] # avergae the number 
 segdata=unique(segloc_data[Gen<28000, .(Gen, y, l, n_seg_rep)]) #remove any additional duplicates
 segdata[, clean_l:=paste0("l = ", l), by = "l"] # add l label
 # create empty data.table for figure
-dummy <- data.table(Gen = c(0, 27000, 0, 27000, 0, 27000 ), n_seg = c(0, 100, 0, 200, 0, 500), l=c(100,100,200,200,500,500))
+dummy <- data.table(Gen = c(0, 27000, 0, 27000, 0, 27000 ), n_seg = c(55, 100, 125, 200, 325, 500), l=c(100,100,200,200,500,500))
 
 l_labels<-c("l = 100", "l = 200", "l = 500") # set labels
 names(l_labels)<-c("100", "200", "500")
-Fig1 = ggplot(segdata, aes(x = Gen)) + 
-  geom_blank(data=dummy, aes(x=Gen, y=n_seg))+
+Fig1 = ggplot(segdata, aes(x = Gen*2)) + 
+  geom_blank(data=dummy, aes(x=Gen*2, y=n_seg))+
   geom_line(aes(y=n_seg_rep,  col=factor(y)), alpha=0.8) +
-  theme_bw()+ coord_cartesian(xlim=c(0,17000))+
+  theme_bw()+ coord_cartesian(xlim=c(0,35000))+
   labs(x="Generations",y="Number of Segregating Loci", col="Epistasis")+facet_wrap(~l, scale="free_y", labeller = labeller(l=l_labels))
+
+Fig1.1 = ggplot(segdata[l==100], aes(x = Gen*2, y=n_seg_rep)) +
+  geom_line(aes(y=n_seg_rep,  col=factor(y)), alpha=0.8) +
+  theme_bw()+ coord_cartesian(xlim=c(0,35000), y=c(55,100))+
+  labs(x="Generations",y="Number of Segregating Loci", col="Epistasis")+facet_wrap(~l, scale="free_y", labeller = labeller(l=l_labels))
+Fig1.2 = ggplot(segdata[l==200], aes(x = Gen*2, y=n_seg_rep)) +
+  geom_line(aes(y=n_seg_rep,  col=factor(y)), alpha=0.8) +
+  theme_bw()+ coord_cartesian(xlim=c(0,35000), y=c(125,200))+
+  labs(x="Generations",y="Number of Segregating Loci", col="Epistasis")+facet_wrap(~l, scale="free_y", labeller = labeller(l=l_labels))
+Fig1.3 = ggplot(segdata[l==500], aes(x = Gen*2, y=n_seg_rep)) +
+  geom_line(aes(y=n_seg_rep,  col=factor(y)), alpha=0.8) +
+  theme_bw()+ coord_cartesian(xlim=c(0,35000), y=c(325,500))+ scale_color_manual(values=c("#00BFC4","#00A9FF","#FF61CC"))+
+  labs(x="Generations",y="Number of Segregating Loci", col="Epistasis")+facet_wrap(~l, scale="free_y", labeller = labeller(l=l_labels))
+Fig1=(Fig1.1|Fig1.2|Fig1.3) + plot_layout(guides = "collect", axes = "collect")
 
 ggsave(filename =paste0("plots/Figure1.pdf"), plot = Fig1 , width = 11, height = 6)
 ggsave(filename =paste0("plots/Figure1.jpg"), plot = Fig1 , width = 11, height = 6)
@@ -130,31 +144,36 @@ ggsave(filename =paste0("plots/Figure1.jpg"), plot = Fig1 , width = 11, height =
 
 amplitudes[, clean_y:=paste0("y = ", y), by= "y"] # add y label
 
-al.dist = ggplot(amplitudes[y>1 & year<20000 ],aes(x = amp, col = factor(year))) + 
+al.dist = ggplot(amplitudes[y>1 & year<20000 ],aes(x = amp, col = factor(year*2))) + 
   geom_density() + scale_x_log10()+
   theme_bw()+
-  labs(x="Amplitude of Fluctuations", y="Density", col= "Year")+ facet_wrap(~clean_lab+factor(clean_y, levels = c("y = 2","y = 4", "y = 8", "y = 12", "y = 16", "y = 20")), nrow=6)
+  labs(x="Amplitude of Fluctuations", y="Density", col= "Generations")+ facet_wrap(~clean_lab+factor(clean_y, levels = c("y = 2","y = 4", "y = 8", "y = 12", "y = 16", "y = 20")), ncol=3)
 
 ggsave(filename="plots/Figure2.pdf", al.dist, width = 8, height =8)
 ggsave(filename="plots/Figure2.jpg", al.dist, width = 8, height =8)
 
 ## Figure 3 - Relationship between number of segregating loci, epistasis, and amplitude of seasonal allele frequency fluctuation.
 # calculate average max, mean and minimum allele frequency
+# calculate minimum and maximum frequency in year/seasonal cycle
+intermediate = alfreq_data[Freq.bin=="Segregating", .(ymax = max(mut_freq), ymin = min(mut_freq)), by=c("id", "year","sampTime","group", "label", "env", "y", "l", "run") ]
+# calculate amplitude across year
+intermediate[, yamp:=ymax-ymin, by=c("id", "year","sampTime","group", "label", "run") ]
+
 amps = intermediate[yamp>0, .(av_max = mean(ymax), av_min = mean(ymin), av_amp = mean(yamp)), by=c("id","group", "label", "sampTime", "env", "y", "l","run")]
 # calculate the average amplitude per replicate
 amps[, amp := av_max-av_min, c("id", "group","label", "sampTime", "env", "y","run")]
 amps[, year:=as.integer(sampTime)*9000, by="sampTime"] # set year
 nseg.scaled=amps[, .N, by=c("label","run", "year", "env","l","y")] # count the number of segregating loci at each time point
 # calculate the mean, variance, median and 90% quantile of amplitude for each replicate
-amps[, `:=` (mean=mean(amp), var=var(amp), med=median(amp), nq=quantile(amp, probs=0.9)), by=c("label","run", "year", "env","y")]
+amps[, `:=` (mean=mean(amp), var=var(amp), med=median(amp), max=max(amp),nq=quantile(amp, probs=0.9)), by=c("label","run", "year", "env","y")]
 # merge data sets for plotting
-nseg.scaled=merge(nseg.scaled, unique(amps[, .(group, label, run, year, mean, var, med, nq)]), by=c("label", "run", "year"))
+nseg.scaled=merge(nseg.scaled, unique(amps[, .(group, label, run, year, mean, var, med,max, nq)]), by=c("label", "run", "year"))
 
-# rename mean, median and 90% Quartile labels
-xx <- names(nseg.scaled); xx[9] <- "Mean"; xx[11] <-"Median"; xx[12] <-"90% Quartile"
+# rename mean, median,max  and 90% Quartile labels
+xx <- names(nseg.scaled); xx[9] <- "Mean"; xx[11] <-"Median"; xx[12] <-"90% Quartile"; xx[13] <- "Maximum"
 setnames(nseg.scaled, xx)
 # transform data set to plot in one figure
-fig3.data=melt(nseg.scaled[,c(1:9,11:12)], measure.vars = c("Mean", "Median", "90% Quartile"), variable.name = "stat")
+fig3.data=melt(nseg.scaled[,c(1:9,11:13)], measure.vars = c("Mean", "Median", "Maximum","90% Quartile"), variable.name = "stat")
 
 fig3.data[, clean_l:=paste0("l = ", l), by= "l"] # set labels
 fig3.data[, clean_y:=paste0("y = ", y), by= "y"]
@@ -167,8 +186,8 @@ fig.3=ggplot(fig3.data[year==18000],aes(x=N, y=value,col=factor(y)))+
   labs(x="Final Number of Segregating Loci", y="Amplitude of Allele Frequency Fluctuation", col="Epistasis (y)", shape=
          "Initial Loci\nNumber")+ scale_x_log10()+ scale_y_log10()
 
-ggsave(filename =paste0("plots/Figure3.jpg"), plot = fig.3 , width = 8, height = 7)
-ggsave(filename =paste0("plots/Figure3.pdf"), plot = fig.3 , width = 8, height = 7)
+ggsave(filename =paste0("plots/Figure3.jpg"), plot = fig.3 , width = 8, height = 9)
+ggsave(filename =paste0("plots/Figure3.pdf"), plot = fig.3 , width = 8, height = 9)
 
 ## Multiple regression models and sampling empirically-based simulation parameters
 
@@ -188,7 +207,8 @@ fig
 # Model fit of a multiple regression where all variables are first logged.
 nseg.scaled[, log_y := log10(y_numeric)]
 nseg.scaled[, log_N := log10(N)]
-nseg.scaled[, log_mean := log10(Mean)]
+nseg.scaled[, log_mean := log10(mean)]
+
 
 mod1 = lm(log_y ~ log_N + log_mean, data = nseg.scaled[ID])  # Just additive effects
 mod2 = lm(log_y ~ log_N*log_mean, data = nseg.scaled[ID])   # With interaction term
