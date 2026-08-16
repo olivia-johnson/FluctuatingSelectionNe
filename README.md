@@ -1,4 +1,4 @@
-# The effect of fluctuating selection on effective population size (N<sub>e</sub>)
+# Seasonal fluctuations in fitness result in severe reductions in effective population size
 This repository contains the code to replicate the analysis conducted in the abovenamed manuscript. 
 
 ## Directions
