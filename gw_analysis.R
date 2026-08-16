@@ -7,10 +7,10 @@ pacman::p_load(data.table, tidyverse, ggpubr)
 setwd("~/FluctuatingSelectionNe/")
 
 # Vectors of initial loci number, epistasis parameter, target amplitude of fluctuation, and final loci number
-loci=c(148, 127, 335,37,18)
+loci=c(148, 127, 335, 37, 18)
 epistasis=c(11, 15, 9.5, 2, 4.5)
-amp_val=c(0.05,0.08, 0.02, 0.04, 0.35)
-loci_val=c(111,90,264,27,9)
+amp_val=c(0.05, 0.08, 0.02, 0.04, 0.35)
+loci_val=c(111, 90, 264, 27, 9)
 
 # create empty data object
 af=NULL # allele frequency data set
@@ -123,6 +123,21 @@ af[Gen==10009 & sim_type=="Fluctuating"&Freq.bin=="Segregating", .(mean_diff=mea
 # overall difference between the derived and actual parameters
 af[Gen==10009 & sim_type=="Fluctuating"&Freq.bin=="Segregating", .(mean_diff=mean(n_diff), max_diff=max(n_diff), mean_amp_diff=mean(abs(amp_diff)), max_amp_diff=max(abs(amp_diff)))]
 
+# Calculate confidence intervals to evaluate regression
+CIdt=NULL
+for (i in 1:length(loci_val)){
+  dt=unique(af[p_N==loci_val[i]&Gen==10009&sim_type=="Fluctuating"&Freq.bin=="Segregating", .(n_seg, p_N, p_amp, rep_amp), by="rep"])
+  nt=t.test(dt$n_seg)
+  nCI=nt$conf.int
+  at=t.test(dt$rep_amp)
+  aCI=at$conf.int
+  CIdt=rbind(CIdt, data.table(l=loci_val[i],p_l=loci[i], amp=amp_val[i],lower_n=nCI[1], upper_n=nCI[2],lower_a=aCI[1], upper_a=aCI[2] ))
+}
+CIdt[,n_within:=ifelse(lower_n<l&upper_n>l, T, F), by="l"]
+CIdt[,a_within:=ifelse(lower_a<amp&upper_a>amp, T, F), by="l"]
+CIdt[,amp_diff:=amp-upper_a, by="l"]
+
+
 # Extract Ne values and relevant metadata
 ne_data=ne_all[,.(Time, linked_Ne, unlinked_Ne, sim_type, rep, label)]
 # transform data set so Ne all in one column
@@ -136,39 +151,119 @@ ne_data[, reduction:=mean_ne/500000-1, by=c("Time", "linkage", "sim_type", "labe
 # calculate the mean reduction in Ne for each replicate(500,000 individuals in simulated populations)
 ne_data[, rep_reduction:=ne/500000-1, by=c("Time", "linkage", "sim_type", "label", "rep")]
 
-# Figure 4 - Relative reduction in effective population size due to fluctuating selection
+# Figure 2A - Relative reduction in effective population size due to fluctuating selection
 
 # create amplitude annotations
 relne.labs=mean_amp[sim_type=="Fluctuating", .( amp=round(mean(amp),1)), by="label"]
 
-rel_ne=ggplot(ne_data[linkage=="unlinked" & sim_type!="Capped Fluctuating" & sim_type!="Capped Neutral"], aes(x=Time))+
+f2a=ggplot(ne_data[linkage=="unlinked" & sim_type!="Capped Fluctuating" & sim_type!="Capped Neutral"  ], aes(x=Time*2))+
   geom_line(aes(y=reduction, group=sim_type, col=sim_type), linewidth=1)+
   geom_hline(yintercept = 0, linetype="dashed")+
-  theme_bw()+coord_cartesian(y=c(-1, .1))+
+  theme_bw()+coord_cartesian(y=c(-1, .1))+ scale_colour_manual(values=c("#00BE67","#C77CFF"))+
   labs(x="Generations", y="Relative Reduction in Ne", col="Selection type") + 
   facet_wrap(~label, nrow=1)+
-  geom_text(data= relne.labs,mapping = aes(x=6000, y=-0.95, label = paste("Mean Amp =",amp, "%")), size=3)
-ggsave(paste0("plots/Figure4.pdf"), rel_ne, width=10, height=3)
-ggsave(paste0("plots/Figure4.jpg"), rel_ne, width=10, height=3)
-  
-ne_data[, id:=paste0(sim_type, "", rep)] # add id to separate replicate lines
-rel_ne_var= ggplot(ne_data[linkage=="unlinked" & sim_type!="Capped Fluctuating" & sim_type!="Capped Neutral"  ], aes(x=Time))+
-  geom_line(aes(y=rep_reduction, group=id, col=sim_type), linewidth=0.3, alpha=0.5)+
-  geom_line(aes(y=reduction, group=id, col=sim_type), linewidth=1)+
+  geom_text(data= relne.labs,mapping = aes(x=12000, y=-0.95, label = paste("Mean Amp =",amp, "%")), size=3)
+
+# Figure 2C - Reduction in Ne due to offspring capping
+caprelne.labs=mean_amp[sim_type=="Capped Fluctuating", .(amp=mean(mean)), by="label"]
+options(scipen = 999)
+f2c=ggplot(ne_data[linkage=="unlinked" & (sim_type=="Capped Neutral"|sim_type=="Capped Fluctuating")], aes(x=Time*2))+
+  geom_line(aes(y=reduction, group=sim_type, col=sim_type), linewidth=1)+
   geom_hline(yintercept = 0, linetype="dashed")+
-  theme_bw()+coord_cartesian(y=c(-1, .1))+
-  labs(x="Generations", y="Relative Reduction in Ne", col="Selection type") + 
+  theme_bw()+
+  labs(x="Generations", y="Relative Reduction in Ne", col="Selection type") +
   facet_wrap(~label, nrow=1)+
-  geom_text(data= relne.labs,mapping = aes(x=6000, y=-0.95, label = paste("Mean Amp =",amp, "%")), size=3)
-ggsave(paste0("plots/FigureS2.pdf"), rel_ne, width=10, height=3)
-ggsave(paste0("plots/FigureS2.jpg"), rel_ne, width=10, height=3)
+  geom_text(data= caprelne.labs,mapping = aes(x=12000, y=-0.95, label = paste("Mean Amp =",round(amp*100, digits = 1), "%")), size=3)
 
-# Figure 5 - Effective population size across the seasonal cycle.
+# Figure 2B - Reduction in effective population size due to fluctuating selection in a population with boom-bust demography.
+# create empty data objects
+fp.af=NULL # fluctuating population size allele frequency
+fp.ne_all=NULL # fluctuating population size Ne
 
- # compile seasonal ouput
+for (j in 1:length(loci)){ # loop through parameter sets
+  L=loci[j] # set initial loci number
+  y=epistasis[j] # set y value
+  
+  lab=paste0("FP_",L,"_", y) # define label in file names
+  rlab=paste0("l = ",L,", y = ", y) # define labels for plots
+  
+  for (rep in 1:10){ # for each replicate
+    # read in allele frequency file no fitness
+    std_nofit=fread(paste0("timeseries_al_freq_ne_FP_nofit_", rep,".txt"))
+    std_nofit[, sim_type:="Fluctuating Pop\nNeutral"] # define simulation type
+    std_nofit[, rep:=rep] # define replicate number
+    std_nofit[, label:=rlab] # add label for plotting
+    
+    # read in Ne file no fitness
+    n_ne=fread(paste0("timeseries_ne_FP_nofit_", rep,".txt"))
+    n_ne[, sim_type:="Fluctuating Pop\nNeutral"] # define simulation type
+    n_ne[, rep:=rep] # define replicate number
+    n_ne[, label:=rlab] # add label for plotting
+    
+    # read in allele frequency file fluctuating
+    std=fread(paste0("timeseries_al_freq_ne_", lab,"_", rep,".txt"))
+    std[, sim_type:="Fluctuating Pop\nFluctuating"] # define simulation type
+    std[, rep:=rep] # define replicate number
+    std[, label:=rlab] # add label for plotting
+    
+    # read in Ne file fluctuating
+    fs_ne=fread(paste0("timeseries_ne_", lab,"_", rep,".txt"))
+    fs_ne[, sim_type:="Fluctuating Pop\nFluctuating"] # define simulation type
+    fs_ne[, rep:=rep] # define replicate number
+    fs_ne[, label:=rlab] # add label for plotting
+    
+    fp.af = rbind(fp.af,std, std_nofit) # bind alelle frequency objectes
+    
+    fp.ne_all=rbind(fp.ne_all, n_ne,  fs_ne)} # bind ne objects
+}
+
+fp.af[, year:=Gen%/%10, by=c("Gen")] # define year / seasonal cycle
+fp.af[, Freq.bin:="Segregating"] # set all alleles to segregating
+fp.af[mut_freq==0.000000, Freq.bin:="Fixed_Winter"] # relabel alleles fixed for winter 
+fp.af[mut_freq==1.000000, Freq.bin:="Fixed_Summer"] # relabel allelles fixed for summer
+fp.af[Freq.bin=="Segregating",n_seg:=.N, by = c("Gen", "sim_type", "rep", "label")] # count number of segregating loci
+# calculate frequency fluctuation
+fp.af[Freq.bin=="Segregating",fc_year:=max(mut_freq)-min(mut_freq), by=c("mut_id", "year", "rep", "sim_type", "label")]
+# calculate mean fluctuating for segregating alleles
+fp_mean_amp=fp.af[Gen>=10000 & Freq.bin=="Segregating", mean(fc_year), by=c("sim_type", "label")]
+fp_mean_amp[, amp:=V1*100] # convert to percentage
+h.mean=10/((1/5e5)*5+(1/5e4)*5) # calculate harmonic mean population size
+# subset datasheet to that required for plotting
+fp.ne_data=fp.ne_all[,.(Time, linked_Ne, unlinked_Ne, sim_type, rep, label)]
+# transform data so Ne in one column
+fp.ne_data=melt(fp.ne_data, id.vars = c("Time", "sim_type", "rep", "label"), value="ne", variable.name = "linkage")
+# reformat linkage label
+fp.ne_data[,linkage:= tstrsplit(linkage, "_", keep=1)]
+# calculate mean Ne
+fp.ne_data[, mean_ne:=mean(ne), by=c("Time", "linkage", "sim_type", "label")]
+# calculate the reduction in Ne relative to the harminc mean population size
+fp.ne_data[, reduction:=mean(ne)/h.mean-1, by=c("Time", "linkage", "sim_type", "label")]
+# create labels of mean amplitude for fluctuating population size
+fprelne.labs=fp_mean_amp[sim_type=="Fluctuating Pop\nFluctuating", .(label, amp)]
+cp=ne_data[linkage=="unlinked" & sim_type=="Fluctuating" | sim_type=="Neutral"] # extract constant population size data
+cp[,(c( "rep_reduction", "id")):=NULL] # remove columns to be able to  ind for fluctuating population size data
+# fix labels names
+cp[, sim_type:=ifelse(sim_type=="Fluctuating Selection", "Constant Pop\nFluctuating Selection", "Constant Pop\nNeutral"), by="sim_type"]
+#bind constant and fluctuation population size data for plot
+fp.ne_data=rbind(fp.ne_data, cp)
+
+f2b= geom_line(data=fp.ne_data[linkage=="unlinked"],aes(x=Time*2,y=reduction, group=sim_type, col=sim_type), linewidth=1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  theme_bw()+#coord_cartesian(y=c(0,1.15))+
+  labs(x="Generations", y="Relative Reduction in Ne", col="Selection type") +
+  facet_wrap(~label, nrow=1)+ scale_color_manual(values = c("#FF61CC","#CD9600"))+
+  geom_text(data= relne.labs,mapping = aes(x=12000, y=-0.95, label = paste("Mean Amp =",round(amp, digits=2), "%")), size=3)
+
+Fig2 =(f2a/f2b/f2c) + plot_layout(guides = "collect")+ plot_annotation(tag_levels = 'A')
+ggsave(paste0("plots/Figure2.pdf"), Fig2, width=12, height=9)
+
+# Figure 3 - Effective population size across the seasonal cycle.
+
+# compile seasonal ouput
 # create empty data objects
 s_af=NULL # seasonal allele frequencies
 sne_all=NULL # seasonal Ne
+ltsne=NULL # cumulative Ne
 
 for (j in 1:length(loci)){ # loop through parameter combinations
   L=loci[j] # set initial loci number
@@ -185,6 +280,7 @@ for (j in 1:length(loci)){ # loop through parameter combinations
     seas[, label:=lab] # set label
     seas[, p_amp:=amp] # set amplitude
     seas[, p_N:=Nl] # set final loci number
+  
     
     # read in seasonal Ne data
     seas_ne=fread(paste0("season_ne_",L,"_",y,"_", rep,".txt"))
@@ -194,9 +290,36 @@ for (j in 1:length(loci)){ # loop through parameter combinations
     seas_ne[, p_amp:=amp] # set amplitude
     seas_ne[, p_N:=Nl] # set final loci number
     
+    # read in seasonal Ne data
+    nfseas_ne=fread(paste0("season_ne_nofit_", rep,".txt"))
+    nfseas_ne[, sim_type:="Neutral"] # set simulation type
+    nfseas_ne[, rep:=rep] # set replicate number
+    nfseas_ne[, label:="Neutral"] # set label
+    nfseas_ne[, p_amp:=amp] # set amplitude
+    nfseas_ne[, p_N:=Nl] # set final loci number
+    
+    
+    ltseas_ne=fread(paste0("ltseason_ne_",L,"_",y,"_", rep,".txt"))
+    ltseas_ne[, sim_type:="Fluctuating"] # set simulation type
+    ltseas_ne[, rep:=rep] # set replicate number
+    ltseas_ne[, label:=lab] # set label
+    ltseas_ne[, p_amp:=amp] # set amplitude
+    ltseas_ne[, p_N:=Nl] # set final loci number
+    
+    nfltseas_ne=fread(paste0("ltseason_ne_nofit_", rep,".txt"))
+    nfltseas_ne[, sim_type:="Neutral"] # set simulation type
+    nfltseas_ne[, rep:=rep] # set replicate number
+    nfltseas_ne[, label:="Neutral"] # set label
+    nfltseas_ne[, p_amp:=amp] # set amplitude
+    nfltseas_ne[, p_N:=Nl] # set final loci number
+    
     s_af = rbind(s_af,seas) # bind to seasonal allele frequency data set
     
-    sne_all=rbind(sne_all,seas_ne)} # bind to seasonal Ne data set
+    sne_all=rbind(sne_all,seas_ne, nfseas_ne)
+    
+    ltsne=rbind(ltsne,ltseas_ne, nfltseas_ne)
+    } # bind to seasonal Ne data set
+  
 }
 
 s_af[, year:=Gen%/%10, by=c("Gen")] # define year/seasonal cycle
@@ -222,7 +345,16 @@ sne_data[, reduction:=mean_ne/500000-1, by=c("Time", "linkage", "sim_type", "lab
 # calculate reduction in Ne for each replicate
 sne_data[, rep_reduction:=ne/500000-1, by=c("Time", "linkage", "sim_type", "label", "rep")]
 
+# calculate mean Ne, relative reduction or replicate relative reduction for cumulative Ne calculations
+ltsne[, mean_ne:=mean(unlinked_Ne), by=c("Time", "sim_type", "label")]
+ltsne[, reduction:=mean_ne/500000-1, by=c("Time", "sim_type", "label")]
+ltsne[, rep_reduction:=unlinked_Ne/500000-1, by=c("Time", "sim_type", "label", "rep")]
+# plot cumulative vs single generation Ne
+segdata=unique(ltsne[, reduction, by=c("label", "Time")])
+segdata[, t1:=5000]
+segdata[, t2:=Time]
 sne_data[, id:=paste0(label,rep), by=c("label", "rep")] # create label to separate replicate lines in plot
+<<<<<<< HEAD
 s_ne=ggplot()+geom_vline(xintercept = 2505, col="blue", linetype="dotted")+
   geom_hline(yintercept = 0, linetype="dashed")+
   geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=reduction, group=label), linewidth=1)+
@@ -283,6 +415,40 @@ bergland_max=data.table(max=0.37) # value calculated in in empiricalMaxAmp.R
 berg_ne=max.mod %>% predict(bergland_max) # predict reduction in Ne in empirical populations from Bergland et al. 2014
 
 # Figure 7 - Mean effect size and mean dominance coefficient of seasonal loci segregating at the end of simulations in relation to their amplitude of fluctuation.
+=======
+s_ne=ggplot()+
+  geom_vline(xintercept = 5010, col="blue", linetype="dotted")+
+  geom_vline(xintercept = 5030, col="blue", linetype="dotted")+
+  geom_vline(xintercept = 5050, col="blue", linetype="dotted")+
+  geom_vline(xintercept = 5000, col="red", linetype="dotted")+
+  geom_vline(xintercept = 5020, col="red", linetype="dotted")+
+  geom_vline(xintercept = 5040, col="red", linetype="dotted")+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time*2,y=rep_reduction, group=id, col=label), linewidth=0.5, alpha=0.5)+
+  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time*2,y=reduction, group=label), linewidth=1)+
+  # geom_segment(aes(y=reduction,yend=reduction, x=t1, xend=t2,),data=segdata )+
+  geom_line(data=segdata, aes(x = Time*2, y=reduction), col="deeppink", linewidth=1.25)+
+  theme_bw()+coord_cartesian(x=c(5000,5060), y=c(-1.0,0.225))+ xlim(c(5000,5060))+
+  labs(x="Generations", y="Relative Reduction in Ne", col="Simulation Parameters") + facet_wrap(~label,nrow=1)+theme(legend.position = 'none')
+# Plot Ne over seasonal cycle
+s_ne_mean=ggplot()+geom_vline(xintercept = 5010, col="blue", linetype="dotted")+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time*2,y=reduction, group=label, col=label), linewidth=1)+
+  theme_bw()+xlim(c(5000,5020))+
+  labs(x="Generations", y="Relative Reduction in Ne", col="Selection Parameters")
+
+ggsave(paste0("plots/Figure3.pdf"), s_ne_mean, width=5, height=2.5)
+ggsave(paste0("plots/Figure3.jpg"), s_ne_mean, width=5, height=2.5)
+
+
+# Figure 4 - Mean effect size and mean dominance coefficient of seasonal loci segregating at the end of simulations in relation to their amplitude of fluctuation.
+# Identify alleles with maximum amplitude
+maxamp=af[sim_type=="Fluctuating", max(fc_year), by=c("label", "Gen", "rep")]
+maxamp=na.omit(af[sim_type=="Fluctuating"&fc_year>0, max(fc_year), by=c("label", "rep", "year")])
+setnames(maxamp, "V1", "fc_year")
+maxmut=left_join(maxamp, af[, .(mut_id, label, rep, year, fc_year)])
+maxmuts=unique(maxmut[, .(label, rep, mut_id)])
+>>>>>>> 47253cafe17ce83de5d664ca6397034a96e36dbe
 
 effectsize=NULL # create empty data object to store effect size and dominance information
 
@@ -301,23 +467,52 @@ final_gen=af[Gen==10009  & sim_type!="Neutral" & sim_type!="Capped Neutral"]
 final_gen=left_join(final_gen, effectsize, by=c("rep", "label", "mut_id"), multiple="all")
 final_gen[, mean_fx:=(s_fx+w_fx)/2] # calculate mean effect size across seasons
 final_gen[, mean_d:=(s_d+w_d)/2] # calculate mean dominance across seasons
+maxamps[, max:=T]
+final_gen=left_join(final_gen, maxamps)
+final_gen[, max:=ifelse(is.na(max), FALSE, TRUE)]
 
-fx_amp=ggplot(final_gen[sim_type=="Capped Fluctuating"], aes(x=mean_fx, y=fc_year, col=mean_d))+
+fx_amp=ggplot(final_gen[sim_type=="Fluctuating"], aes(x=mean_fx, y=fc_year, col=mean_d, shape=max))+
   geom_point(alpha=0.8) + facet_wrap(~label, nrow=1)+scale_x_log10()+scale_y_log10() + 
   scale_color_gradientn(trans="log10", na.value = "white",colours=c("orange", "darkmagenta", "navyblue"))+
-  labs(x = "Mean Effect size", y="Amplitude", col= "Mean Dominance")+theme_bw()
+  labs(x = "Mean Effect Size", y="Amplitude", col= "Mean Dominance", shape="Maximum Amplitude")+theme_bw()
 
-d_amp=ggplot(final_gen[ sim_type=="Capped Fluctuating"], aes(x=mean_d, y=fc_year, col=mean_fx))+
+d_amp=ggplot(final_gen[ sim_type=="Fluctuating"], aes(x=mean_d, y=fc_year, col=mean_fx, shape=max))+
   geom_point(alpha=0.8) + facet_wrap(~label, nrow=1)+scale_x_log10()+scale_y_log10() + 
   scale_color_gradientn(trans="log10", na.value = "white",colours=c("orange", "darkmagenta", "navyblue"))+
-  labs(x = "Mean Dominance Coefficient", y="Amplitude", col="Mean Effect size") +theme_bw()
+  labs(x = "Mean Dominance Coefficient", y="Amplitude", col="Mean Effect Size", shape="Maximum Amplitude") +theme_bw()
 
 f_d=ggarrange(fx_amp, d_amp, labels = c("A", "B"), ncol=1)#,common.legend = TRUE, legend = "right")
-ggsave(paste0("plots/Figure7.pdf"), f_d, width=10, height=6)
-ggsave(paste0("plots/Figure7.jpg"), f_d, width=10, height=6)
+f_d=(fx_amp/d_amp)+ plot_layout(guides = 'collect')+ plot_annotation(tag_levels = 'A')
 
+ggsave(paste0("plots/Figure4.pdf"), f_d, width=10, height=6)
+ggsave(paste0("plots/Figure4.jpg"), f_d, width=10, height=6)
 
-# Figure 8 - Reduction in effective population size for varying census size (Nc).
+# Figure 5 - Relationship between reduction in effective population size and aspects of seasonal fluctuation (amplitude).
+# merge Ne and amplitude data of standard simulations
+ne_amp=merge(ne_data[Time==10010 & linkage=="unlinked"], mean_amp, by=c("sim_type", "label", "rep"))
+# plot mean, median and maximum amplitude vs amplitude
+mean=ggplot(ne_amp[sim_type=="Fluctuating" ])+
+  geom_point(aes(x=mean, y=rep_reduction, col=label)) + labs(x="Mean Amplitude", y="Reduction in Ne", col="Parameters") + theme_bw()
+med=ggplot(ne_amp[sim_type=="Fluctuating"])+
+  geom_point(aes(x=median, y=rep_reduction, col=label))+ labs(x="Median Amplitude", col="Parameters")+ theme_bw()+theme(axis.title.y = element_blank())
+max=ggplot(ne_amp[sim_type=="Fluctuating"])+
+  geom_point(aes(x=max, y=rep_reduction, col=label)) + 
+  labs(x="Maximum Amplitude", col="Parameters")+ theme_bw() +theme(axis.title.y = element_blank())
+
+ne_amp_plot=ggarrange(mean, med, max,common.legend = TRUE, legend = "right", nrow=1 )
+ggsave(paste0("plots/Figure5.pdf"), ne_amp_plot, width=8, height=3)
+ggsave(paste0("plots/Figure5.jpg"), ne_amp_plot, width=8, height=3)
+
+# Linear regression to predict reduction in Ne from empirical values (calculated in empiricalMaxAmp.R)
+max.mod=lm(rep_reduction~max, ne_amp[sim_type=="Fluctuating"])
+summary(max.mod)
+
+machado_max=data.table(max=0.45) # value calculated in in empiricalMaxAmp.R
+mach_ne=max.mod %>% predict(machado_max) # predict reduction in Ne in empirical populations from Machado et al. 2021
+bergland_max=data.table(max=0.37) # value calculated in in empiricalMaxAmp.R
+berg_ne=max.mod %>% predict(bergland_max) # predict reduction in Ne in empirical populations from Bergland et al. 2014
+
+# SI - Reduction in effective population size for varying census size (Nc).
 # create empty data objects
 nc_af=NULL # allele frequency data object
 nc_all=NULL # ne data object
@@ -412,12 +607,12 @@ nc_data[, rep_reduction:=ne/as.numeric(sim_type)-1, by=c("Time", "linkage", "sim
 # create amplitude labels for plots
 relnc.labs=mean_ncamp[, .(amp=mean(mean)), by="sim_type"]
 # create labels for facet strips
-nc_data[, label:=paste("Nc =", sim_type), by="sim_type"]
+nc_data[, label:=paste("Nc =", format((2*as.numeric(sim_type)), scientific=FALSE)), by="sim_type"]
 # create labels for facet strips
-relnc.labs[, label:=paste("Nc =", sim_type), by="sim_type"]
+relnc.labs[, label:=paste("Nc =", format((2*as.numeric(sim_type)), scientific=FALSE)), by="sim_type"]
 
 
-rel_nc=ggplot(nc_data[linkage=="unlinked"], aes(x=Time))+
+rel_nc=ggplot(nc_data[linkage=="unlinked"], aes(x=Time*2))+
   geom_line(aes(y=rep_reduction, group=rep,col=sim_type), linewidth=0.3, alpha=0.5)+
   geom_line(aes(y=reduction, col=sim_type), linewidth=1)+
   geom_hline(yintercept = 0, linetype="dashed")+
@@ -425,112 +620,5 @@ rel_nc=ggplot(nc_data[linkage=="unlinked"], aes(x=Time))+
   labs(x="Generations", y="Relative Reduction in Ne", col="Selection type") + 
   facet_wrap(~label, nrow=1)+ theme(legend.position="none")+
   geom_text(data= relnc.labs,mapping = aes(x=6000, y=-0.95, label = paste("Mean Amp =",signif(amp,2), "%")), size=3)
-ggsave(paste0("plots/Figure8.pdf"), rel_nc, width=10, height=3)
-ggsave(paste0("plots/Figure 8.jpg"), rel_nc, width=10, height=3)
-
-
-# Figure 9 - Reduction in effective population size with and without offspring capping.
-# create labels for plots of mean amplitude for capped fluctuating simulations
-caprelne.labs=mean_amp[sim_type=="Capped Fluctuating", .(amp=round(mean(amp),1)), by="label"]
-
-rel_ne=ggplot(ne_data[linkage=="unlinked"], aes(x=Time))+
-  geom_line(aes(y=reduction, group=id, col=sim_type), linewidth=1)+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  theme_bw()+coord_cartesian(y=c(-1, .1))+
-  labs(x="Generations", y="Relative Reduction in Ne", col="Selection type") + 
-  facet_wrap(~label, nrow=1)+
-  geom_text(data= caprelne.labs,mapping = aes(x=6000, y=-0.95, label = paste("Mean Amp =",amp, "%")), size=3)
-ggsave(paste0("plots/Figure9.pdf"), rel_ne, width=10, height=3)
-ggsave(paste0("plots/Figure9.jpg"), rel_ne, width=10, height=3)
-
-# summarise capped vs standard amplitudes
-capmean=mean_amp[sim_type=="Capped Fluctuating"| sim_type=="Fluctuating", .(mean=mean(mean), max=max(max), median=mean(median),ID=paste0(sim_type,label)), by=c("sim_type", "label")]
-
-# Figure 10 - Reduction in effective population size due to fluctuating selection in a population with boom-bust demography.
-# create empty data objects
-fp.af=NULL # fluctuating population size allele frequency
-fp.ne_all=NULL # fluctuating population size Ne
-
-for (j in 1:length(loci)){ # loop through parameter sets
-  L=loci[j] # set initial loci number
-  y=epistasis[j] # set y value
-  
-  lab=paste0("FP_",L,"_", y) # define label in file names
-  rlab=paste0("l = ",L,", y = ", y) # define labels for plots
-  
-  for (rep in 1:10){ # for each replicate
-    # read in allele frequency file no fitness
-    std_nofit=fread(paste0("timeseries_al_freq_ne_FP_nofit_", rep,".txt"))
-    std_nofit[, sim_type:="Fluctuating Pop\nNeutral"] # define simulation type
-    std_nofit[, rep:=rep] # define replicate number
-    std_nofit[, label:=rlab] # add label for plotting
-    
-    # read in Ne file no fitness
-    n_ne=fread(paste0("timeseries_ne_FP_nofit_", rep,".txt"))
-    n_ne[, sim_type:="Fluctuating Pop\nNeutral"] # define simulation type
-    n_ne[, rep:=rep] # define replicate number
-    n_ne[, label:=rlab] # add label for plotting
-    
-    # read in allele frequency file fluctuating
-    std=fread(paste0("timeseries_al_freq_ne_", lab,"_", rep,".txt"))
-    std[, sim_type:="Fluctuating Pop\nFluctuating"] # define simulation type
-    std[, rep:=rep] # define replicate number
-    std[, label:=rlab] # add label for plotting
-    
-    # read in Ne file fluctuating
-    fs_ne=fread(paste0("timeseries_ne_", lab,"_", rep,".txt"))
-    fs_ne[, sim_type:="Fluctuating Pop\nFluctuating"] # define simulation type
-    fs_ne[, rep:=rep] # define replicate number
-    fs_ne[, label:=rlab] # add label for plotting
-    
-    fp.af = rbind(fp.af,std, std_nofit) # bind alelle frequency objectes
-    
-    fp.ne_all=rbind(fp.ne_all, n_ne,  fs_ne)} # bind ne objects
-}
-
-fp.af[, year:=Gen%/%10, by=c("Gen")] # define year / seasonal cycle
-fp.af[, Freq.bin:="Segregating"] # set all alleles to segregating
-fp.af[mut_freq==0.000000, Freq.bin:="Fixed_Winter"] # relabel alleles fixed for winter 
-fp.af[mut_freq==1.000000, Freq.bin:="Fixed_Summer"] # relabel allelles fixed for summer
-fp.af[Freq.bin=="Segregating",n_seg:=.N, by = c("Gen", "sim_type", "rep", "label")] # count number of segregating loci
-# calculate frequency fluctuation
-fp.af[Freq.bin=="Segregating",fc_year:=max(mut_freq)-min(mut_freq), by=c("mut_id", "year", "rep", "sim_type", "label")]
-# calculate mean fluctuating for segregating alleles
-fp_mean_amp=fp.af[Gen>=10000 & Freq.bin=="Segregating", mean(fc_year), by=c("sim_type", "label")]
-fp_mean_amp[, amp:=V1*100] # convert to percentage
-h.mean=10/((1/5e5)*5+(1/5e4)*5) # calculate harmonic mean population size
-# subset datasheet to that required for plotting
-fp.ne_data=fp.ne_all[,.(Time, linked_Ne, unlinked_Ne, sim_type, rep, label)]
-# transform data so Ne in one column
-fp.ne_data=melt(fp.ne_data, id.vars = c("Time", "sim_type", "rep", "label"), value="ne", variable.name = "linkage")
-# reformat linkage label
-fp.ne_data[,linkage:= tstrsplit(linkage, "_", keep=1)]
-# calculate mean Ne
-fp.ne_data[, mean_ne:=mean(ne), by=c("Time", "linkage", "sim_type", "label")]
-# calculate the reduction in Ne relative to the harminc mean population size
-fp.ne_data[, reduction:=mean(ne)/h.mean-1, by=c("Time", "linkage", "sim_type", "label")]
-# create labels of mean amplitude for fluctuating population size
-fprelne.labs=fp_mean_amp[sim_type=="Fluctuating Pop\nFluctuating", .(label, amp)]
-cp=ne_data[linkage=="unlinked" & sim_type=="Fluctuating" | sim_type=="Neutral"] # extract constant population size data
-cp[,(c( "rep_reduction", "id")):=NULL] # remove columns to be able to  ind for fluctuating population size data
-# fix labels names
-cp[, sim_type:=ifelse(sim_type=="Fluctuating", "Constant Pop\nFluctuating", "Constant Pop\nNeutral"), by="sim_type"]
-#bind constant and fluctuation population size data for plot
-fp.ne_data=rbind(fp.ne_data, cp)
-
-rel_ne=ggplot()+
-  geom_line(data=fp.ne_data[linkage=="unlinked"],aes(x=Time,y=reduction, group=sim_type, col=sim_type), linewidth=1)+
-  geom_hline(yintercept = 0, linetype="dashed")+
-  theme_bw()+
-  labs(x="Generations", y="Relative Reduction in Ne", col="Selection type") +
-  facet_wrap(~label, nrow=1)+ 
-  geom_text(data= fprelne.labs,mapping = aes(x=6000, y=-0.95, label = paste("Mean Amp =",round(amp, digits=2), "%")), size=3)
-ggsave(paste0("plots/Figure10.pdf"), rel_ne, width=10, height=3)
-ggsave(paste0("plots/Figure10.jpg"), rel_ne, width=10, height=3)
-
-# calculate Ne using harminc population size and reduction in Ne for different parameter sets
-h.mean*(1+unique(fp.ne_data[Time==10010 & sim_type=="Fluctuating Pop\nFluctuating" & linkage=="unlinked" &label=="l = 127, y = 15", reduction]))
-h.mean*(1+unique(fp.ne_data[Time==10010 & sim_type=="Fluctuating Pop\nFluctuating" & linkage=="unlinked" &label=="l = 148, y = 11", reduction]))
-h.mean*(1+unique(fp.ne_data[Time==10010 & sim_type=="Fluctuating Pop\nFluctuating" & linkage=="unlinked" &label=="l = 37, y = 2", reduction]))
-h.mean*(1+unique(fp.ne_data[Time==10010 & sim_type=="Fluctuating Pop\nFluctuating" & linkage=="unlinked" &label=="l = 18, y = 4.5", reduction]))
-h.mean*(1+unique(fp.ne_data[Time==10010 & sim_type=="Fluctuating Pop\nFluctuating" & linkage=="unlinked" &label=="l = 335, y = 9.5", reduction]))
+ggsave(paste0("plots/Reduction_Nc.pdf"), rel_nc, width=10, height=3)
+ggsave(paste0("plots/Reduction_Nc.jpg"), rel_nc, width=10, height=3)

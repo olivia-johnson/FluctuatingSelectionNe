@@ -1,4 +1,4 @@
-### Examine allele frequency fluctuations and generate multiple regression models###
+ ### Examine allele frequency fluctuations and generate multiple regression models###
 
 ## Load packages and install any missing from the user's R library
 if (!require("pacman")) install.packages("pacman")
@@ -75,6 +75,7 @@ alfreq_data[, sampTime:=ifelse(gen_season=="EG",(20*year)%/%9000, (12*year)%/%90
 alfreq_data[Freq.bin=="Segregating",fc_year:=max(mut_freq)-min(mut_freq), by=c("id", "year")] # yearly frequency change of segregating alleles
 alfreq_data[Gen>=10000, fluctuating:=ifelse(mut_freq!=0 & mut_freq != 1, T, F), by="id"] # determine if fluctuating after initial establishment period 
 
+<<<<<<< HEAD
 ## Figure S1 - Distribution of mean effect size for segregating and fixed/lost alleles.
 lostloc=unique(alfreq_data[Gen==18000&Freq.bin=="Segregating", .(id, y, l)]) #videntify loci segregating at final sampling gen
 vals=na.omit(alfreq_data[Gen==1, .(Gen, id, s_d, w_d, s_fx, w_fx, y,l)]) # remove NA values
@@ -152,6 +153,8 @@ al.dist = ggplot(amplitudes[y>1 & year<20000 ],aes(x = amp, col = factor(year*2)
 ggsave(filename="plots/Figure2.pdf", al.dist, width = 8, height =8)
 ggsave(filename="plots/Figure2.jpg", al.dist, width = 8, height =8)
 
+=======
+>>>>>>> 47253cafe17ce83de5d664ca6397034a96e36dbe
 ## Figure 3 - Relationship between number of segregating loci, epistasis, and amplitude of seasonal allele frequency fluctuation.
 # calculate average max, mean and minimum allele frequency
 # calculate minimum and maximum frequency in year/seasonal cycle
@@ -173,12 +176,16 @@ nseg.scaled=merge(nseg.scaled, unique(amps[, .(group, label, run, year, mean, va
 xx <- names(nseg.scaled); xx[9] <- "Mean"; xx[11] <-"Median"; xx[12] <-"90% Quartile"; xx[13] <- "Maximum"
 setnames(nseg.scaled, xx)
 # transform data set to plot in one figure
+<<<<<<< HEAD
 fig3.data=melt(nseg.scaled[,c(1:9,11:13)], measure.vars = c("Mean", "Median", "Maximum","90% Quartile"), variable.name = "stat")
+=======
+fig1.data=melt(nseg.scaled[,c(1:9,11:13)], measure.vars = c("Mean", "Median", "Maximum","90% Quartile"), variable.name = "stat")
+>>>>>>> 47253cafe17ce83de5d664ca6397034a96e36dbe
 
-fig3.data[, clean_l:=paste0("l = ", l), by= "l"] # set labels
-fig3.data[, clean_y:=paste0("y = ", y), by= "y"]
+fig1.data[, clean_l:=paste0("l = ", l), by= "l"] # set labels
+fig1.data[, clean_y:=paste0("y = ", y), by= "y"]
 
-fig.3=ggplot(fig3.data[year==18000],aes(x=N, y=value,col=factor(y)))+
+fig.1=ggplot(fig1.data[year==18000],aes(x=N, y=value,col=factor(y)))+
   geom_point(aes(shape=factor(l)))+
   geom_smooth(aes(col=factor(y)),method='lm', formula= y~x, se = FALSE, alpha=0.3)+  
   facet_wrap(~stat, ncol=1, strip.position = 'right')+
@@ -186,8 +193,13 @@ fig.3=ggplot(fig3.data[year==18000],aes(x=N, y=value,col=factor(y)))+
   labs(x="Final Number of Segregating Loci", y="Amplitude of Allele Frequency Fluctuation", col="Epistasis (y)", shape=
          "Initial Loci\nNumber")+ scale_x_log10()+ scale_y_log10()
 
+<<<<<<< HEAD
 ggsave(filename =paste0("plots/Figure3.jpg"), plot = fig.3 , width = 8, height = 9)
 ggsave(filename =paste0("plots/Figure3.pdf"), plot = fig.3 , width = 8, height = 9)
+=======
+ggsave(filename =paste0("plots/Figure1.pdf"), plot = fig.1 , width = 11, height = 6)
+ggsave(filename =paste0("plots/Figure1.jpg"), plot = fig.1 , width = 11, height = 6)
+>>>>>>> 47253cafe17ce83de5d664ca6397034a96e36dbe
 
 ## Multiple regression models and sampling empirically-based simulation parameters
 
