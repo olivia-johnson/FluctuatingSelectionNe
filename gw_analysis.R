@@ -103,9 +103,10 @@ af[mut_freq==0.000000, Freq.bin:="Fixed_Winter"] # relabel those fixed for winte
 af[mut_freq==1.000000, Freq.bin:="Fixed_Summer"] # relabel those fixed for summer allele
 af[Freq.bin=="Segregating",n_seg:=.N, by = c("Gen", "sim_type", "rep", "label")] # count the number of segregating loci
 af[Freq.bin=="Segregating",fc_year:=max(mut_freq)-min(mut_freq), by=c("mut_id", "year", "rep", "sim_type", "label")] #calculate fequency change over the year of segregating alleles
+af[Freq.bin=="Segregating",h_meanaf:=harmonic.mean(mut_freq), by=c("mut_id", "year", "rep", "sim_type", "label")] #calculate fequency change over the year of segregating alleles
 
 # calculate mean, max and median allele frequency change
-mean_amp=af[Gen>=10000 & Freq.bin=="Segregating", .(mean=mean(fc_year), max=max(fc_year), median=median(fc_year)), by=c("sim_type", "label", "rep")]
+mean_amp=af[Gen>=10000 & Freq.bin=="Segregating", .(mean=mean(fc_year), max=max(fc_year), median=median(fc_year), mh=mean(h_meanaf), n_seg), by=c("sim_type", "label", "rep")]
 mean_amp[, amp:=round(mean*100, digits = 1)] # make amplitude a percentage
 # identify loci segregating at the final time point
 final_loci=af[Gen==10010 & Freq.bin=="Segregating", unique(n_seg), by=c("rep", "sim_type", "label")]
@@ -223,17 +224,19 @@ sne_data[, rep_reduction:=ne/500000-1, by=c("Time", "linkage", "sim_type", "labe
 
 sne_data[, id:=paste0(label,rep), by=c("label", "rep")] # create label to separate replicate lines in plot
 s_ne=ggplot()+geom_vline(xintercept = 2505, col="blue", linetype="dotted")+
-  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=mean_ne, group=label), linewidth=1)+
-  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=ne, group=id, col=label), linewidth=0.5, alpha=0.5)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=reduction, group=label), linewidth=1)+
+  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=rep_reduction, group=id, col=label), linewidth=0.5, alpha=0.5)+
   theme_bw()+coord_cartesian(x=c(2500,2510))+ scale_x_continuous(breaks=c(2500,2505,2510))+ 
-  labs(x="Generations", y="Ne", col="Simulation Parameters") + facet_wrap(~label,nrow=1)+theme(legend.position = 'none')
+  labs(x="Generations", y="Relative Reduction in Ne", col="Simulation Parameters") + facet_wrap(~label,nrow=1)+theme(legend.position = 'none')
 ggsave(paste0("plots/FigureS3.pdf"), s_ne, width=10, height=3)
 ggsave(paste0("plots/FigureS3.jpg"), s_ne, width=10, height=3)
 
 s_ne_mean=ggplot()+geom_vline(xintercept = 2505, col="blue", linetype="dotted")+
-  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=mean_ne, group=label, col=label), linewidth=1)+
+  geom_hline(yintercept = 0, linetype="dashed")+
+  geom_line(data=sne_data[linkage=="unlinked"],aes(x=Time,y=reduction, group=label, col=label), linewidth=1)+
   theme_bw()+coord_cartesian(x=c(2500,2510))+ scale_x_continuous(breaks=c(2500,2502,2504,2506,2508,2510))+ 
-  labs(x="Generations", y="Ne", col="Selection Parameters") 
+  labs(x="Generations", y="Relative Reduction in Ne", col="Selection Parameters") 
 
 ggsave(paste0("plots/Figure5.pdf"), s_ne_mean, width=5, height=2.5)
 ggsave(paste0("plots/Figure5.jpg"), s_ne_mean, width=5, height=2.5)
@@ -248,7 +251,7 @@ mean=ggplot(ne_amp[sim_type=="Fluctuating" ])+
 med=ggplot(ne_amp[sim_type=="Fluctuating"])+
   geom_point(aes(x=median, y=rep_reduction, col=label))+ labs(x="Median Amplitude", col="Parameters")+ theme_bw()+theme(axis.title.y = element_blank())
 max=ggplot(ne_amp[sim_type=="Fluctuating"])+
-  geom_point(aes(x=max, y=rep_reduction, col=label)) + 
+  geom_point(aes(x=n_seg, y=rep_reduction, col=label)) + 
   labs(x="Maximum Amplitude", col="Parameters")+ theme_bw() +theme(axis.title.y = element_blank())
 
 ne_amp_plot=ggarrange(mean, med, max,common.legend = TRUE, legend = "right", nrow=1 )
@@ -257,7 +260,22 @@ ggsave(paste0("plots/Figure6.jpg"), ne_amp_plot, width=8, height=3)
 
 # Linear regression to predict reduction in Ne from empirical values (calculated in empiricalMaxAmp.R)
 max.mod=lm(rep_reduction~max, ne_amp[sim_type=="Fluctuating"])
+max.mod=lm(rep_reduction+log10(mh)~max, ne_amp[sim_type=="Fluctuating"])
+
 summary(max.mod)
+
+max=ggplot(ne_amp[sim_type=="Fluctuating"])+
+  geom_point(aes(x=max, y=rep_reduction, col=label)) + 
+  labs(x="Maximum Amplitude",y="Reduction in Ne",  col="Parameters")+ theme_bw()
+mh=ggplot(ne_amp[sim_type=="Fluctuating"])+
+  geom_point(aes(x=mh, y=rep_reduction, col=label)) + 
+  labs(x="Harmonic Mean Frequency", col="Parameters")+ theme_bw() +theme(axis.title.y = element_blank()) + scale_x_log10()
+nseg=ggplot(ne_amp[sim_type=="Fluctuating"])+
+  geom_point(aes(x=n_seg, y=rep_reduction, col=label)) + 
+  labs(x="Number of Segregating Loci", col="Parameters")+ theme_bw() +theme(axis.title.y = element_blank())+ scale_x_log10()
+ne_amp_plot=ggarrange(max, mh, nseg,common.legend = TRUE, legend = "right", nrow=1 )
+ggsave(paste0("plots/revision1.pdf"), ne_amp_plot, width=8, height=3)
+ggsave(paste0("plots/revision1.jpg"), ne_amp_plot, width=8, height=3)
 
 machado_max=data.table(max=0.45) # value calculated in in empiricalMaxAmp.R
 mach_ne=max.mod %>% predict(machado_max) # predict reduction in Ne in empirical populations from Machado et al. 2021
